@@ -98,7 +98,7 @@ S08000027 = NHS Tayside
 
 
 ```{r}
-beds_16_to_21 %>% 
+beds_16_to_21 <- beds_16_to_21 %>% 
   rename(healthboard = hb) %>% 
   mutate(healthboard = recode(healthboard,
                      "S08000015" = "NHS Ayrshire and Arran",
@@ -122,5 +122,20 @@ beds_16_to_21 %>%
 
 ```{r}
 write.csv(beds_16_to_21, here("../../clean_data/clean_beds_2016_to_2021"))
+```
+
+```{r}
+
+beds_16_to_21 %>% 
+  ggplot(aes(x = quarter, y = percentage_occupancy_by_board, group = healthboard, colour = healthboard)) +
+  geom_line()
+
+beds_16_to_21 %>% 
+  group_by(quarter) %>%
+  distinct(healthboard, .keep_all = TRUE) %>%
+  ggplot(aes(x = quarter, y = total_staffed_by_board, group = healthboard, colour = healthboard)) +
+  geom_line()
+
+
 ```
 
