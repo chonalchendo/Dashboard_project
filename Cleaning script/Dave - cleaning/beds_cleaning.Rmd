@@ -1,0 +1,126 @@
+```{r}
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(here)
+```
+Notes on cleaning
+
+2021 Q4 data is provisional (provisional column Quarter QF has been dropped).
+
+A range of data is aggregated these columns dropped but may be re-instated.
+
+Speciality code relates to Speciality name and will be dropped with name being clearer.
+
+Lots of duplication within healthboard for bed occupancy data meaning data must represent entire healthboard, not individual hospitals. Used distinct function on quarter, healthboard and occupancy data to filter out duplicates. Then removed location as this was what seemed to duplicate in some healthboards.
+
+_NOTE - There are 9 rows with 0 beds and therefore NA percentage occupancy, these may need to be filtered out for any plots - filter(is.na(percentage_occupancy))_
+
+```{r}
+beds_data <- read_csv(here::here("../../raw_data/beds_by_nhs_board_of_treatment_and_specialty.csv")) %>% 
+  clean_names() 
+
+beds_16_21 <- beds_data %>% 
+  select(-quarter_qf, -hbqf, -location_qf, -specialty, -specialty_qf, -specialty_name_qf, -all_staffed_beddays_qf, -total_occupied_beddays_qf, - average_available_staffed_beds_qf, -average_occupied_beds_qf, -percentage_occupancy_qf) %>% 
+  distinct(quarter, hb, percentage_occupancy, all_staffed_beddays, total_occupied_beddays, average_occupied_beds, .keep_all = TRUE) %>% 
+  select(-location)
+
+  
+beds_16_21
+```
+
+Added columns to calculate beds available in health board in total and by the speciality within the healthboard
+
+```{r}
+beds_16_to_21 <- beds_16_21 %>% 
+  group_by(quarter, hb, specialty_name) %>% 
+  mutate(total_staffed_for_speciality = sum(all_staffed_beddays),
+         total_occupied_for_speciality = sum(total_occupied_beddays),
+         percentage_occupancy_for_speciality = total_occupied_for_speciality/total_staffed_for_speciality * 100) %>% 
+  ungroup() %>% 
+  group_by(quarter, hb) %>% 
+  mutate(total_staffed_by_board = sum(all_staffed_beddays),
+         total_occupied_by_board = sum(total_occupied_beddays),
+         percentage_occupancy_by_board = total_occupied_by_board/total_staffed_by_board * 100) %>% 
+  ungroup()
+```
+
+Dates formatted by quarter
+
+```{r}
+beds_16_to_21 <- beds_16_to_21 %>% 
+  mutate(quarter = yq(quarter))
+beds_16_to_21
+```
+
+
+```{r}
+beds_16_to_21 %>% 
+  distinct(hb) %>% 
+  arrange(hb)
+
+beds_data %>% 
+    distinct(hb)
+```
+
+Data is slightly confusing. Missing codes below but healthboard has a second code. Changed borders in 2018, old codes below.
+S08000018 = NHS Fife
+S08000021 = NHS Greater Glasgow and Clyde
+S08000023 = NHS Lanarkshire
+S08000027 = NHS Tayside
+```{r}
+#Does not work as a function,
+
+# recode_healthboard(beds_16_to_21, hb)
+# 
+# recode_healthboard <- function(dataframe, column){
+#       
+#     for(entry in dataframe$column){
+#   mutate(column = recode(column,
+#                      "S08000015" = "NHS Ayrshire and Arran",
+#                      "S08000016" = "NHS Borders",
+#                      "S08000017" = "NHS Dumfries and Galloway",
+#                      "S08000019" = "NHS Forth Valley",
+#                      "S08000020" = "NHS Grampian",
+#                      "S08000022" = "NHS Highland",
+#                      "S08000024" = "NHS Lothian",
+#                      "S08000025" = "NHS Orkney",
+#                      "S08000026" = "NHS Shetland",
+#                      "S08000028" = "NHS Western Isles",
+#                      "S08000029" = "NHS Fife",
+#                      "S08000030" = "NHS Tayside",
+#                      "S08000031" = "NHS Greater Glasgow and Clyde",
+#                      "S08000032" = "NHS Lanarkshire",
+#                      "S92000003" = "Scotland",
+#                      "SB0801"    = "The Golden Jubille National Hospital"
+#                      )) }}
+```
+
+
+```{r}
+beds_16_to_21 %>% 
+  rename(healthboard = hb) %>% 
+  mutate(healthboard = recode(healthboard,
+                     "S08000015" = "NHS Ayrshire and Arran",
+                     "S08000016" = "NHS Borders",
+                     "S08000017" = "NHS Dumfries and Galloway",
+                     "S08000019" = "NHS Forth Valley",
+                     "S08000020" = "NHS Grampian",
+                     "S08000022" = "NHS Highland",
+                     "S08000024" = "NHS Lothian",
+                     "S08000025" = "NHS Orkney",
+                     "S08000026" = "NHS Shetland",
+                     "S08000028" = "NHS Western Isles",
+                     "S08000029" = "NHS Fife",
+                     "S08000030" = "NHS Tayside",
+                     "S08000031" = "NHS Greater Glasgow and Clyde",
+                     "S08000032" = "NHS Lanarkshire",
+                     "S92000003" = "Scotland",
+                     "SB0801"    = "The Golden Jubille National Hospital"))
+```
+
+
+```{r}
+write.csv(beds_16_to_21, here("../../clean_data/clean_beds_2016_to_2021"))
+```
+
