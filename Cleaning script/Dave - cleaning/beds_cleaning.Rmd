@@ -125,17 +125,42 @@ write.csv(beds_16_to_21, here("../../clean_data/clean_beds_2016_to_2021"))
 ```
 
 ```{r}
-
+# % occupancy
 beds_16_to_21 %>% 
   ggplot(aes(x = quarter, y = percentage_occupancy_by_board, group = healthboard, colour = healthboard)) +
-  geom_line()
+  geom_line()+
+  labs(title = "Percentage occupancy of beds for healthboards")
+
+beds_16_to_21 %>% 
+  filter(healthboard == "NHS Fife") %>% 
+  ggplot(aes(x = quarter, y = percentage_occupancy_by_board, group = healthboard, colour = healthboard)) +
+  geom_line()+
+  labs(title = "Percentage occupancy of beds for Fife")
+
+beds_16_to_21 %>% 
+  filter(healthboard == "NHS Greater Glasgow and Clyde") %>% 
+  ggplot(aes(x = quarter, y = percentage_occupancy_by_board, group = healthboard, colour = healthboard)) +
+  geom_line()+
+  labs(title = "Percentage occupancy of beds for Greater Glasgow and Clyde")
+
+beds_16_to_21 %>% 
+  filter(healthboard == "NHS Greater Glasgow and Clyde") %>% 
+  ggplot(aes(x = quarter, y = percentage_occupancy_by_board, group = healthboard, colour = healthboard)) +
+  geom_line()+
+  labs(title = "Percentage occupancy of beds for The Golden Jubille National Hospital")
+
+beds_16_to_21 %>% 
+  filter(healthboard == "NHS Lothian") %>% 
+  ggplot(aes(x = quarter, y = percentage_occupancy_by_board, group = healthboard, colour = healthboard)) +
+  geom_line()+
+  labs(title = "Percentage occupancy of beds across Lothian")
 
 beds_16_to_21 %>% 
   group_by(quarter) %>%
   distinct(healthboard, .keep_all = TRUE) %>%
   ggplot(aes(x = quarter, y = total_staffed_by_board, group = healthboard, colour = healthboard)) +
-  geom_line()
-
+  geom_line()+
+  labs(title = "Total beds in verious NHS healthboards")
 
 ```
 
