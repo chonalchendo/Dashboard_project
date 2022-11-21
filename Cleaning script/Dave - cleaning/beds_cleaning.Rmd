@@ -151,7 +151,7 @@ beds_16_to_21 %>%
 
 beds_16_to_21 %>% 
   filter(healthboard == "NHS Lothian") %>% 
-  ggplot(aes(x = quarter, y = percentage_occupancy_by_board, group = healthboard, colour = healthboard)) +
+  ggplot(aes(x = quarter, y = percentage_occupancy_for_speciality, group = specialty_name, colour = specialty_name)) +
   geom_line()+
   labs(title = "Percentage occupancy of beds across Lothian")
 
@@ -162,5 +162,8 @@ beds_16_to_21 %>%
   geom_line()+
   labs(title = "Total beds in verious NHS healthboards")
 
+
+beds_16_to_21 %>% 
+  arrange(desc(percentage_occupancy_for_speciality))
 ```
 
