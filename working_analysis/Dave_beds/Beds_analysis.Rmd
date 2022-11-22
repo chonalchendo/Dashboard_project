@@ -1,0 +1,176 @@
+```{r}
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(here)
+library(sf)
+library(leaflet)
+library(tsibble)
+library(fable)
+library(urca)
+```
+
+
+
+
+```{r}
+#for gg plots
+beds <- read_csv(here("../../clean_data/beds_16_to_21.csv")) %>% 
+  mutate(quarter = yearquarter(quarter))
+beds
+
+#for forecast
+tsibble_beds <- read_csv(here("../../clean_data/tsibble_beds_16_to_21_percent.csv"))
+
+tsibble_beds %>%
+  mutate(quarter = yearquarter(quarter)) %>% 
+  as_tsibble(index = quarter, key = healthboard) -> tsibble_beds
+tsibble_beds
+
+
+tsibble_wards <- read_csv(here("../../clean_data/tsibble_wards_16_to_21_percent.csv"))
+
+tsibble_wards %>%
+  mutate(quarter = yearquarter(quarter)) %>% 
+  as_tsibble(index = quarter, key = healthboard) -> tsibble_wards
+tsibble_wards
+  
+
+#for maps
+beds_map <- st_read(here("../../clean_data/map_beds_4.geojson"))
+
+beds_map
+
+```
+
+
+```{r}
+beds %>% 
+  ggplot(aes(x = quarter, y = percentage_occupancy_by_board, group = healthboard, colour = healthboard)) +
+  geom_line()+
+  labs(title = "Percentage occupancy of beds for healthboards")
+
+beds%>% 
+  filter(healthboard == "Fife") %>% 
+  ggplot(aes(x = quarter, y = percentage_occupancy_by_board, group = healthboard, colour = healthboard)) +
+  geom_line()+
+  labs(title = "Percentage occupancy of beds for Fife")
+
+```
+ggplot non interactive map
+
+```{r}
+beds_map %>% 
+  ggplot()+
+  geom_sf(aes(fill = mean_percent_occ_board))+
+  labs()
+```
+
+
+
+```{r}
+
+pal <- colorBin("YlOrRd", domain = beds_map$mean_percent_occ_board, bins = 7)
+
+labels <- sprintf(
+  "<strong>%s</strong><br/>%g percent occupied ",
+  beds_map$healthboard, beds_map$mean_percent_occ_board
+) %>% lapply(htmltools::HTML)
+
+map <- leaflet(beds_map) %>%
+  addTiles() %>% 
+  addPolygons(fillColor = ~pal(mean_percent_occ_board),
+              color = "white",
+              fillOpacity = 0.7,
+              label = labels) %>% 
+  addLegend(pal = pal,
+            values = ~mean_percent_occ_board,
+            opacity = 0.7,
+            title = NULL,
+            position = "bottomright")
+map
+```
+
+Forecast data
+
+```{r}
+
+fit <- tsibble_beds %>% 
+  model(
+    snaive = SNAIVE(percentage_occupancy_by_board),
+    mean_model = MEAN(percentage_occupancy_by_board),
+    arima = ARIMA(percentage_occupancy_by_board)
+  )
+
+forecast_1 <- fit %>%
+  fabletools::forecast(h = 12)
+forecast_1
+
+
+forecast_1 %>% 
+  filter(healthboard == "Ayrshire and Arran") %>% 
+  autoplot(tsibble_beds)+
+  guides(colour = guide_legend(title = "Forecast"))
+  
+
+```
+
+
+```{r}
+beds %>% 
+  filter(percent_wards_over_ninety != 0) %>% 
+  ggplot(aes(x = quarter, y = percent_wards_over_ninety, group = healthboard, colour = healthboard)) +
+  geom_line()
+
+beds %>% 
+  filter(percent_wards_over_ninety != 0) %>% 
+    filter(healthboard == "Fife") %>% 
+  ggplot(aes(x = quarter, y = percent_wards_over_ninety, group = healthboard, colour = healthboard)) +
+  geom_line()
+```
+```{r}
+pal2 <- colorBin("YlOrRd", domain = beds_map$mean_wards_over_ninety, bins =5)
+
+labels2 <- sprintf(
+  "<strong>%s</strong><br/>%g percent of wards over 90 percent occupied from Q4 2017 to Q3 2021",
+  beds_map$healthboard, beds_map$mean_wards_over_ninety
+) %>% lapply(htmltools::HTML)
+
+map <- leaflet(beds_map) %>%
+  addTiles() %>% 
+  addPolygons(fillColor = ~pal2(mean_wards_over_ninety),
+              color = "white",
+              fillOpacity = 0.7,
+              label = labels2) %>% 
+  addLegend(pal = pal2,
+            values = ~mean_wards_over_ninety,
+            opacity = 0.7,
+            title = NULL,
+            position = "bottomright")
+map
+```
+
+```{r}
+
+
+fit <- tsibble_wards %>% 
+  model(
+    snaive = SNAIVE(percent_wards_over_ninety),
+    mean_model = MEAN(percent_wards_over_ninety),
+    arima = ARIMA(percent_wards_over_ninety)
+  )
+
+forecast_2 <- fit %>%
+  fabletools::forecast(h = 12)
+forecast_2
+
+
+forecast_2 %>% 
+  filter(healthboard == "Ayrshire and Arran") %>% 
+  autoplot(tsibble_wards)+
+  guides(colour = guide_legend(title = "Forecast"))
+  
+
+
+```
+

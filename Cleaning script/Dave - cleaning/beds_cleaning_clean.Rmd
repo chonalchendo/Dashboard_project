@@ -1,0 +1,178 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(here)
+library(sf)
+library(leaflet)
+library(tsibble)
+library(fable)
+library(urca)
+```
+
+Notes on cleaning
+
+2021 Q4 data is provisional (provisional column Quarter QF has been dropped).
+
+A range of data is aggregated these columns dropped but may be re-instated.
+
+Speciality code relates to Speciality name and will be dropped with name being clearer.
+
+Lots of duplication within healthboard for bed occupancy data meaning data must represent entire healthboard, not individual hospitals. Used distinct function on quarter, healthboard and occupancy data to filter out duplicates. Then removed location as this was what seemed to duplicate in some healthboards.
+
+_NOTE - There are 9 rows with 0 beds and therefore NA percentage occupancy, these may need to be filtered out for any plots - filter(is.na(percentage_occupancy))_
+
+```{r}
+beds_data <- read_csv(here::here("../../raw_data/beds_by_nhs_board_of_treatment_and_specialty.csv")) %>% 
+  clean_names() 
+
+beds_16_21 <- beds_data %>% 
+  select(-quarter_qf, -hbqf, -location_qf, -specialty, -specialty_qf, -specialty_name_qf, -all_staffed_beddays_qf, -total_occupied_beddays_qf, - average_available_staffed_beds_qf, -average_occupied_beds_qf, -percentage_occupancy_qf) %>% 
+  distinct(quarter, hb, percentage_occupancy, all_staffed_beddays, total_occupied_beddays, average_occupied_beds, .keep_all = TRUE) %>% 
+  select(-location)
+
+beds_16_21
+```
+
+Added columns to calculate beds available in health board in total and by the speciality within the healthboard
+
+```{r}
+beds_16_to_21 <- beds_16_21 %>% 
+  group_by(quarter, hb, specialty_name) %>% 
+  mutate(total_staffed_for_speciality = sum(all_staffed_beddays),
+         total_occupied_for_speciality = sum(total_occupied_beddays),
+         percentage_occupancy_for_speciality = total_occupied_for_speciality/total_staffed_for_speciality * 100) %>% 
+  ungroup() %>% 
+  group_by(quarter, hb) %>% 
+  mutate(total_staffed_by_board = sum(all_staffed_beddays),
+         total_occupied_by_board = sum(total_occupied_beddays),
+         percentage_occupancy_by_board = total_occupied_by_board/total_staffed_by_board * 100) %>% 
+  ungroup() %>% 
+  mutate(percentage_over_ninety = if_else(percentage_occupancy >=90, 1, 0)) %>% 
+  group_by(quarter, hb) %>%
+  mutate(num_in_q_hb = n()) %>%
+  ungroup() %>% 
+  group_by(quarter, hb, percentage_over_ninety) %>% 
+  mutate(wards_over_ninety = sum(percentage_over_ninety)) %>%
+  mutate(percent_wards_over_ninety = wards_over_ninety/num_in_q_hb*100) %>% 
+  ungroup() %>% 
+  select(quarter, hb, specialty_name, percentage_occupancy, percentage_occupancy_by_board, wards_over_ninety, percent_wards_over_ninety)
+
+```
+
+Dates formatted by quarter
+
+```{r}
+beds_16_to_21 <- beds_16_to_21 %>% 
+  mutate(quarter = yearquarter(quarter))
+beds_16_to_21
+
+```
+
+
+```{r}
+beds_16_to_21 <- beds_16_to_21 %>% 
+  rename(healthboard = hb) %>% 
+  mutate(healthboard = recode(healthboard,
+                     "S08000015" = "Ayrshire and Arran",
+                     "S08000016" = "Borders",
+                     "S08000017" = "Dumfries and Galloway",
+                     "S08000019" = "Forth Valley",
+                     "S08000020" = "Grampian",
+                     "S08000022" = "Highland",
+                     "S08000024" = "Lothian",
+                     "S08000025" = "Orkney",
+                     "S08000026" = "Shetland",
+                     "S08000028" = "Western Isles",
+                     "S08000029" = "Fife",
+                     "S08000030" = "Tayside",
+                     "S08000031" = "Greater Glasgow and Clyde",
+                     "S08000032" = "Lanarkshire",
+                     "S92000003" = "Scotland",
+                     "SB0801"    = "The Golden Jubille National Hospital")) %>% 
+  filter(healthboard != "Scotland", healthboard != "The Golden Jubille National Hospital")
+beds_16_to_21
+```
+
+```{r}
+geometry_data <- sf::st_read("../../raw_data/Shape_data/SG_NHS_HealthBoards_2019.shp") %>% 
+  clean_names()
+
+simple_geo_data <- st_simplify(geometry_data, preserveTopology = FALSE, dTolerance = 2000)
+
+simple_geo_data
+
+ukgrid <- "+init=epsg:27700"
+latlong <- "+init=epsg:4326"
+
+lat_long_geo_data <- st_transform(simple_geo_data, crs= latlong)
+
+joined_beds <- beds_16_to_21 %>% 
+  left_join(lat_long_geo_data, by = c("healthboard" = "hb_name"))
+
+joined_beds
+
+```
+Dropped NHS Scotland (average or total) and Golden Jubille Hopsital (part of Glasgow)
+Made Tsibble
+```{r}
+dropped_joined_beds <- joined_beds %>% 
+  drop_na()
+
+
+dropped_joined_beds <- st_as_sf(dropped_joined_beds)
+
+
+
+beds_16_to_21 %>% 
+  filter(percent_wards_over_ninety != 0) %>% 
+  count(quarter, hb, percent_wards_over_ninety)
+
+beds_16_to_21 %>% 
+  count(quarter, hb, percentage_occupancy_by_board)
+
+
+
+
+
+
+
+tsibble_beds <- beds_16_to_21 %>% 
+  filter(healthboard != "The Golden Jubille National Hospital",
+         healthboard != "Scotland") %>% 
+  distinct(quarter, healthboard, percentage_occupancy_by_board)
+
+tsibble_beds <- tsibble_beds %>% 
+  mutate(quarter = yearquarter(quarter))
+
+tsibble_beds %>% as_tsibble(index = quarter, key = healthboard) -> tsibble_beds_percent
+
+tsibble_wards <- beds_16_to_21 %>% 
+  filter(healthboard != "The Golden Jubille National Hospital",
+         healthboard != "Scotland") %>% 
+  distinct(quarter, healthboard, percent_wards_over_ninety)
+
+tsibble_wards <- tsibble_wards %>% 
+  filter(percent_wards_over_ninety != 0) %>% 
+  mutate(quarter = yearquarter(quarter))
+
+tsibble_wards %>% as_tsibble(index = quarter, key = healthboard) -> tsibble_wards_percent
+
+
+```
+
+
+```{r}
+write_csv(beds_16_to_21, here::here("../../clean_data/beds_16_to_21.csv"))
+
+st_write(dropped_joined_beds, here::here("../../clean_data/map_beds.geojson"), append = TRUE)
+
+write_csv(tsibble_beds_percent, here::here("../../clean_data/tsibble_beds_16_to_21_percent.csv"))
+
+write_csv(tsibble_wards_percent, here::here("../../clean_data/tsibble_wards_16_to_21_percent.csv"))
+
+```
