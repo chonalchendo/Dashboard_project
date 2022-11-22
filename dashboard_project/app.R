@@ -9,6 +9,17 @@ healthboards <- unique(demographics_data$healthboard)
 
 age_choices <-  sort(unique(demographics_data$age))
 
+department_type <- sort(unique(wait_times_clean$department_type))
+
+year <- sort(unique(wait_times_clean$year))
+
+healthboard_wait_times <- sort(unique(wait_times_clean$healthboard))
+
+month_or_year <- wait_times_clean %>% select(month, year)
+
+map_variables <- dropped_joined_waiting %>% select(percent_target_met, percent_target_met_ep)
+
+
 
 # Define UI for application that draws a histogram
 ui <- dashboardPage(
@@ -85,9 +96,87 @@ ui <- dashboardPage(
         )
       ),
       tabItem(
-        tabName = "waiting"
-        #Conal
+        tabName = "waiting",
+        h2("NHS Wait Times 2007 - 2022"),
+        h3("Distribution of NHS Attendances"),
+        fluidRow(
+          column(
+            6,
+            plotOutput("sumaggattendance")
+          ),
+          column(
+            6, 
+            plotOutput("sumepattendance")
+          )
+        ),
+        selectInput(
+          inputId = "department_type",
+          label = "Select a Department Type",
+          choices = department_type
+        ),
+        selectInput(
+          inputId = "year", 
+          label = "Select a Year",
+          choices = year
+        ),
+        
+        h3("Attendance Targets"),
+        fluidRow(
+          column(
+            6,
+            plotOutput("attendancetarget")
+          ),
+          column(
+            6,
+            plotOutput("targetmap")
+          ),
+          varSelectInput(
+            inputId = "variable",
+            label = "Select variable",
+            data = map_variables,
+            multiple = FALSE
+          )
+        ),
+        varSelectInput(
+        inputId = "timeseriess",
+        label = "Select Month or Year",
+        data = month_or_year,
+        multiple = FALSE
+        ),
+        
+        selectInput(
+          inputId = "healthboard", 
+          label = "Select a Healthboard",
+          choices = healthboard_wait_times
+        ),
+        
+        h3("Attendances Greater than 8hrs or 12hrs"),
+        fluidRow(
+          column(
+            6,
+            plotOutput("attendance8hrs")
+          ),
+          column(
+            6,
+            plotOutput("attendance12hrs")
+          )
+        ),
+        varSelectInput(
+          inputId = "timeseries",
+          label = "Select Time Measurement",
+          data = month_or_year,
+          multiple = FALSE,
+            
+        ),
+        selectInput(
+          inputId = "healthboards", 
+          label = "Select a Healthboard",
+          choices = healthboard_wait_times
+        ),
+        
+        
       ),
+        
       tabItem(
         tabName = "beds"
       ),
@@ -180,6 +269,80 @@ server <- function(input, output) {
       ylab("Average episode length") +
       xlab("Quarter") +
       labs(title  = "Average Episode Length by chosen demographics") +
+      theme(axis.text.x = element_text(angle=45, hjust=1))
+  )
+  
+  output$sumaggattendance <- renderPlot(
+    wait_times_clean %>% 
+      filter(department_type == input$department_type, 
+             year == input$year) %>% 
+      group_by(healthboard) %>% 
+      summarise(attendance = sum(number_of_attendances_aggregate)) %>% 
+      ggplot(aes(reorder(healthboard, attendance), attendance, fill = healthboard)) +
+      geom_col(show.legend = FALSE) +
+      theme_classic() +
+      coord_flip() +
+      labs(x = "Healthboard", y = "attendances", title = "Total Attendances by Healthboard (Aggregate)")
+  )
+
+  output$sumepattendance <- renderPlot(
+    wait_times_clean %>% 
+      drop_na() %>% 
+      filter(department_type == input$department_type, 
+             year == input$year) %>% 
+      group_by(healthboard) %>% 
+      summarise(attendance_ep = sum(number_of_attendances_episode)) %>% 
+      ggplot(aes(reorder(healthboard, attendance_ep), attendance_ep, fill = healthboard)) +
+      geom_col(show.legend = FALSE) +
+      theme_classic() +
+      coord_flip() +
+      labs(x = "Healthboard", y = "Attendances (Epiosdes)", title = "Total Attendances by Healthboard (Episode)")  
+      
+  )
+  
+  output$attendancetarget <- renderPlot(
+    wait_times_clean %>% 
+      filter(healthboard %in% input$healthboard,
+             department_type == input$department_type) %>% 
+      group_by(!!input$timeseriess) %>% 
+      summarise(n = mean(percent_target_met)) %>% 
+      ggplot(aes(!!input$timeseriess, n, colour = input$healthboard, group = input$healthboard)) +
+      scale_y_continuous(labels=scales::percent) +
+      geom_line(show.legend = FALSE) +
+      theme_classic() +
+      labs(x = "Year", y = "Percentage", title = "Yearly Healthboard Attendance Target Met (Percentage)") +
+      theme(axis.text.x = element_text(angle=45, hjust=1))
+  )
+  
+  output$targetmap <- renderPlot(
+    dropped_joined_waiting %>% 
+      ggplot(aes(fill = !!input$variable)) +
+      geom_sf() +
+      theme_map() +
+      theme(legend.position = "right")
+      
+  )
+  
+  output$attendance8hrs <- renderPlot(
+    wait_times_clean %>%
+      filter(healthboard %in% input$healthboards) %>% 
+      group_by(!!input$timeseries) %>%
+      summarise(avg_attendance_greater_8hrs = mean(attendance_greater8hrs, na.rm = TRUE)) %>%
+      ggplot(aes(!!input$timeseries, avg_attendance_greater_8hrs, colour = input$healthboards, group = input$healthboards)) +
+      geom_line(show.legend = FALSE) +
+      theme_classic() +
+      theme(axis.text.x = element_text(angle=45, hjust=1))
+    
+    )
+  
+  output$attendance12hrs <- renderPlot(
+    wait_times_clean %>%
+      filter(healthboard %in% input$healthboards) %>%
+      group_by(!!input$timeseries) %>%
+      summarise(avg_attendance_greater_12hrs = mean(attendance_greater12hrs, na.rm = TRUE)) %>%
+      ggplot(aes(!!input$timeseries, avg_attendance_greater_12hrs, group = input$healthboards, colour = input$healthboards)) +
+      geom_line(show.legend = FALSE) +
+      theme_classic() +
       theme(axis.text.x = element_text(angle=45, hjust=1))
   )
 
