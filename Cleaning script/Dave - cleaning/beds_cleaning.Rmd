@@ -8,7 +8,6 @@ library(leaflet)
 library(tsibble)
 library(fable)
 library(urca)
-library(zoo)
 ```
 Notes on cleaning
 
@@ -267,7 +266,7 @@ fit <- tsibble_beds %>%
     arima = ARIMA(percentage_occupancy_by_board)
   )
 
-forecast_1 <- fit %>% 
+forecast_1 <- fit %>%
   fabletools::forecast(h = 12)
 forecast_1
 

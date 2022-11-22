@@ -1,0 +1,165 @@
+```{r}
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(here)
+library(sf)
+library(leaflet)
+library(tsibble)
+library(fable)
+library(urca)
+```
+
+
+
+
+```{r}
+#for gg plots
+beds <- read_csv(here("../../clean_data/beds_16_to_21.csv")) %>% 
+  mutate(quarter = yearquarter(quarter))
+beds
+
+#for forecast
+tsibble_beds <- read_csv(here("../../clean_data/tsibble_beds_16_to_21_percent.csv"))
+
+tsibble_beds %>%
+  mutate(quarter = yearquarter(quarter)) %>% 
+  as_tsibble(index = quarter, key = healthboard) -> tsibble_beds
+tsibble_beds
+
+
+tsibble_wards <- read_csv(here("../../clean_data/tsibble_wards_16_to_21_percent.csv"))
+
+tsibble_wards %>%
+  mutate(quarter = yearquarter(quarter)) %>% 
+  as_tsibble(index = quarter, key = healthboard) -> tsibble_wards
+tsibble_wards
+  
+
+#for maps
+beds_map <- st_read(here("../../clean_data/map_beds.geojson"))
+
+beds_map
+
+```
+
+
+```{r}
+beds %>% 
+  filter(healthboard == "Fife") %>% 
+  summarise(occ = mean(percentage_occupancy_by_board))
+
+
+beds %>% 
+  distinct(quarter, healthboard, .keep_all = TRUE) %>% 
+    filter(healthboard == "Fife") %>% 
+  summarise(occ = mean(percentage_occupancy_by_board))
+
+
+beds %>% 
+  filter(healthboard == "Fife") 
+```
+
+
+
+
+```{r}
+beds %>% 
+  ggplot(aes(x = quarter, y = percentage_occupancy_by_board, group = healthboard, colour = healthboard)) +
+  geom_line()+
+  labs(title = "Percentage occupancy of beds for healthboards")
+
+beds%>% 
+  filter(healthboard == "Fife") %>% 
+  ggplot(aes(x = quarter, y = percentage_occupancy_by_board, group = healthboard, colour = healthboard)) +
+  geom_line()+
+  labs(title = "Percentage occupancy of beds for Fife")
+
+```
+
+```{r}
+
+beds_map %>% 
+  ggplot()+
+  geom_sf(aes(fill = percentage_occupancy_by_board))+
+  labs()
+
+
+pal <- colorBin("YlOrRd", domain = beds_map$percentage_occupancy_by_board)
+
+labels <- sprintf(
+  "<strong>%s</strong><br/>%g percent occupied ",
+  beds_map$healthboard, beds_map$percentage_occupancy_by_board
+) %>% lapply(htmltools::HTML)
+
+map <- leaflet(beds_map) %>%
+  addTiles() %>% 
+  addPolygons(fillColor = ~pal(percentage_occupancy_by_board),
+              color = "white",
+              fillOpacity = 0.7,
+              label = labels) %>% 
+  addLegend(pal = pal,
+            values = ~percentage_occupancy_by_board,
+            opacity = 0.7,
+            title = NULL,
+            position = "bottomright")
+map
+```
+
+Forecast data
+
+```{r}
+
+fit <- tsibble_beds %>% 
+  model(
+    snaive = SNAIVE(percentage_occupancy_by_board),
+    mean_model = MEAN(percentage_occupancy_by_board),
+    arima = ARIMA(percentage_occupancy_by_board)
+  )
+
+forecast_1 <- fit %>%
+  fabletools::forecast(h = 12)
+forecast_1
+
+
+forecast_1 %>% 
+  filter(healthboard == "Ayrshire and Arran") %>% 
+  autoplot(tsibble_beds)+
+  guides(colour = guide_legend(title = "Forecast"))
+  
+
+```
+
+
+```{r}
+beds %>% 
+  filter(percent_wards_over_90 != 0) %>% 
+  ggplot(aes(x = quarter, y = percent_wards_over_90, group = healthboard, colour = healthboard)) +
+  geom_line()
+
+beds %>% 
+  filter(percent_wards_over_90 != 0) %>% 
+    filter(healthboard == "Fife") %>% 
+  ggplot(aes(x = quarter, y = percent_wards_over_90, group = healthboard, colour = healthboard)) +
+  geom_line()
+```
+```{r}
+labels_2 <- sprintf(
+  "<strong>%s</strong><br/>%g wards over 90% full ",
+  beds_map$healthboard, beds_map$percentage_occupancy_by_board
+) %>% lapply(htmltools::HTML)
+
+map <- leaflet(beds_map) %>% 
+  addTiles() %>% 
+  addPolygons(fillColor = ~pal(percentage_occupancy_by_board),
+              color = "white",
+              fillOpacity = 0.7,
+              label = labels_2) %>% 
+  addLegend(pal = pal,
+            values = ~percentage_occupancy_by_board,
+            opacity = 0.7,
+            title = NULL,
+            position = "bottomright")
+map
+```
+
