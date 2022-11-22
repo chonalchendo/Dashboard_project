@@ -176,11 +176,10 @@ server <- function(input, output) {
   
   output$lengtheps_hb <- renderPlot(
     demographics_data %>% 
-      mutate(winter = if_else(str_detect(quarter, "Q[1,4]"), TRUE, FALSE)) %>% 
       filter(healthboard %in% input$healthboard) %>% 
       group_by(quarter) %>% 
-      summarise(mean_episode = mean(average_length_of_episode, na.rm = TRUE),
-                winter = winter) %>% 
+      summarise(mean_episode = mean(average_length_of_episode, na.rm = TRUE)) %>% 
+      mutate(winter = if_else(str_detect(quarter, "Q[1,4]"), TRUE, FALSE)) %>%
       ggplot(aes(x = quarter, y = mean_episode)) +
       geom_col(aes(fill = winter, color = winter)) +
       ylab("Average Length of Episode") +
@@ -204,11 +203,10 @@ server <- function(input, output) {
   
   output$lengtheps_chosen <- renderPlot(
     demographics_data %>% 
-      mutate(winter = if_else(str_detect(quarter, "Q[1,4]"), TRUE, FALSE)) %>% 
       filter(sex == input$gender, age == input$age) %>% 
       group_by(quarter) %>% 
-      summarise(average_length_of_episode = mean(average_length_of_episode, na.rm = TRUE),
-                winter = winter) %>% 
+      summarise(average_length_of_episode = mean(average_length_of_episode, na.rm = TRUE)) %>% 
+      mutate(winter = if_else(str_detect(quarter, "Q[1,4]"), TRUE, FALSE)) %>% 
       ggplot(aes(x = quarter, y = average_length_of_episode))+
       geom_col(aes(fill = winter, colour = winter)) +
       ylab("Average episode length") +
