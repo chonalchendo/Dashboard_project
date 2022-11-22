@@ -2,12 +2,34 @@ library(shiny)
 library(shinydashboard)
 library(tidyverse)
 library(janitor)
+library(tsibble)
+library(urca)
+library(fable)
+library(prophet)
+library(lubridate)
 
+#demographics code
 demographics_data <- read_csv(here::here("clean_data/demographics.csv"))
 
 healthboards <- unique(demographics_data$healthboard)
 
 age_choices <-  sort(unique(demographics_data$age))
+
+#waiting times code
+
+
+
+
+#beds code
+
+
+
+
+#covid code
+
+covid_age_sex <- read_csv(here::here("clean_data/covid_age_sex.csv"))
+covid_tsibble <- as_tsibble(covid_age_sex, index = week_ending)
+
 
 
 # Define UI for application that draws a histogram
@@ -92,8 +114,18 @@ ui <- dashboardPage(
         tabName = "beds"
       ),
       tabItem(
-        tabName = "covid"
-        #Nacho
+        tabName = "covid",
+        h2("Impact of Covid on the NHS"),
+        fluidRow(
+          column(
+            6,
+            plotOutput("forecast")
+          ),
+          column(
+            6,
+            plotOutput("prophet")
+          )
+        )
       )
     )
     
@@ -140,6 +172,8 @@ server <- function(input, output) {
       theme(axis.text.x = element_text(angle=45, hjust=1))
   )
   
+  #Demographics Output
+  
   output$lengtheps_hb <- renderPlot(
     demographics_data %>% 
       mutate(winter = if_else(str_detect(quarter, "Q[1,4]"), TRUE, FALSE)) %>% 
@@ -181,6 +215,68 @@ server <- function(input, output) {
       xlab("Quarter") +
       labs(title  = "Average Episode Length by chosen demographics") +
       theme(axis.text.x = element_text(angle=45, hjust=1))
+  )
+  
+  # Waiting Times Output
+  
+  
+  
+  
+  
+  
+  
+  
+  #Beds Output
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  #Covid Output
+  
+  output$forecast <- renderPlot({
+    fit <- covid_tsibble %>% 
+      model(
+        snaive = SNAIVE(total_admissions ~ lag("year")),
+        arima = ARIMA(total_admissions)
+      )
+    
+    forecast <- fit %>% 
+      fabletools::forecast(h = 100)
+    
+    forecast %>% 
+      autoplot(covid_tsibble) +
+      xlab("Time") +
+      ylab("Total admissions") +
+      labs(title = "Forecasts of total admissions")
+  }
+  )
+  
+  output$prophet <- renderPlot(
+    {
+      covid_prophet <- covid_tsibble %>% 
+        mutate(ds = week_ending,
+               y = total_admissions)
+      
+      covid_prophet <- column_to_rownames(covid_prophet, var = "ds") 
+      
+      covid_prophet <-  mutate(covid_prophet, ds = week_ending)
+      
+      prophet <- prophet(covid_prophet)
+      
+      future <- make_future_dataframe(prophet, periods = 600)
+      
+      forecast_p <- predict(prophet, future)
+      
+      plot(prophet, forecast_p) +
+        xlab("Time") +
+        ylab("Total admissions") +
+        labs(title = "Prophet forecast of total admissions")
+    }
   )
 
 }
