@@ -1,0 +1,406 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(zoo)
+library(ggplot2)
+library(tsibble)
+
+
+
+admin_hb_speciality <- read_csv("clean_data/admin_hb_speciality.csv")
+
+view(admin_hb_speciality)
+```
+
+This plot shows how an specific group (KIDS) in a period of time from 2020 till the end of 2022. (Demographic, temporal, geographic)
+
+
+
+```{r}
+total_mean_kids_quarters_no_scotland<- admin_hb_speciality %>% 
+  #select(year_enter, month_enter,quarters,quarters, number_admissions,specialty,healthboard) %>% 
+mutate(quarters = yearquarter(week_ending))%>% # yearquarter() is a function from tsibli
+  group_by(hb, quarters) %>% 
+  #filter(year_enter == '2022') %>% 
+  filter(specialty %in% c('Paediatrics (medical & surgical)','Paediatrics (medical)')) %>% 
+  #filter(quarters == "Q4") %>% 
+  #filter(healthboard == "NHS Greater Glasgow and Clyde" ) %>% 
+  filter(hb!= 'Scotland') %>%
+  summarise(mean_kids = mean(number_admissions)) %>% 
+  arrange(desc(mean_kids))
+
+
+total_mean_kids_quarters_no_scotland
+```
+
+
+```{r}
+total_mean_kids_quarters_no_scotland %>% 
+ggplot(aes(x= quarters , y = mean_kids, colour = hb))+
+  geom_line()+
+  labs(
+    title = "Kids Number Admission by Quarters/Healthboard",
+    x = "Quarters",
+    y = "Admission Numbers"
+  )+
+ geom_vline(xintercept = as.numeric(as.Date (yearquarter("2020 Q2"))),col ="firebrick", lwd = 0.05)+
+  annotate("text", x= as.numeric(as.Date (yearquarter("2020 Q2"))), y= 175, label="COVID Lockdown", angle=90, size=5, color="blue") +
+  geom_vline(xintercept =as.numeric(as.Date(yearquarter("2022 Q2"))),col ="firebrick", lwd = 0.05)+
+  annotate("text", x= as.numeric(as.Date (yearquarter("2022 Q2"))), y= 180, label="summer", angle=90, size=5, color="blue")
+
+```
+
+The same  graph from above divided by NHS, except Orkney and Shetlands
+
+```{r}
+total_mean_kids_quarters_no_scotland %>% 
+ggplot(aes(x= quarters , y = mean_kids, colour = hb))+
+  geom_line()+
+  facet_wrap(~hb)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  labs(
+    title = "Kids Number Admission by Quarters",
+    x = "Quarters",
+    y = "Admission Numbers"
+  )
+```
+AVERAGE ADMISSIONS KIDS BY QUARTER YEARS 2020 -2022
+
+Quarter 1st
+
+```{r}
+#2020 Q1
+mean_kids_2020_q1 <- admin_hb_speciality %>% 
+  select(year_enter, month_enter,day_enter,quarters, number_admissions,specialty,hb) %>% 
+  group_by(hb) %>% 
+  filter(year_enter == '2020') %>% 
+  filter(specialty %in% c('Paediatrics (medical & surgical)','Paediatrics (medical)')) %>% 
+  filter(quarters == "Q1") %>% 
+  filter(hb != 'Scotland') %>%
+  summarise(mean_kids = mean(number_admissions)) %>% 
+  arrange(desc(mean_kids))
+
+mean_kids_2020_q1
+```
+
+
+``````{r}
+#Plot kids 2020 Q1
+mean_kids_2020_q1%>% 
+ggplot(aes(x= mean_kids, y = hb ))+
+  geom_point()+
+  labs(
+    title = "Kids Number Admission 2020 Q1",
+    x = "Average Admission numbers",
+    y = "Healthboard"
+  )
+```
+
+```{r}
+#2021 Q1. Number of admission decrease during the first months 2021 from year before and year after
+
+mean_kids_2021_q1 <- admin_hb_speciality %>% 
+  select(year_enter, month_enter,day_enter,quarters, number_admissions,specialty,hb) %>% 
+  group_by(hb) %>% 
+  filter(year_enter == '2021') %>% 
+  filter(specialty %in% c('Paediatrics (medical & surgical)','Paediatrics (medical)')) %>% 
+  filter(quarters == "Q1") %>% 
+  filter(hb != 'Scotland') %>%
+  summarise(mean_kids = mean(number_admissions)) %>% 
+  arrange(desc(mean_kids))
+
+mean_kids_2021_q1
+```
+
+```{r}
+#Plot kids 2021 January_march
+mean_kids_2021_q1%>% 
+ggplot(aes(x= mean_kids, y = hb ))+
+  geom_point()+
+  labs(
+    title = "Kids Number Admission 2021 Q1",
+    x = "Average Admission numbers",
+    y = "Healthboard"
+  )
+```
+
+
+```{r}
+#2022 Q1
+ mean_kids_2022_q1 <- admin_hb_speciality %>% 
+  select(year_enter, month_enter,day_enter,quarters, number_admissions,specialty,hb) %>% 
+  group_by(hb) %>% 
+  filter(year_enter == '2022') %>% 
+  filter(specialty %in% c('Paediatrics (medical & surgical)','Paediatrics (medical)')) %>% 
+  filter(quarters == "Q1") %>% 
+  filter(hb != 'Scotland') %>%
+  summarise(mean_kids = mean(number_admissions)) %>% 
+  arrange(desc(mean_kids))
+
+mean_kids_2022_q1
+```
+```{r}
+mean_kids_2022_q1%>% 
+ggplot(aes(x= mean_kids, y = hb ))+
+  geom_point()+
+  labs(
+    title = "Kids Number Admission 2022 Q1",
+    x = "Average Admission numbers",
+    y = "Healthboard"
+  )
+```
+
+    2nd Quarter
+
+```{r}
+mean_kids_2020_q2 <- admin_hb_speciality %>% 
+  select(year_enter, month_enter,day_enter,quarters, number_admissions,specialty,hb) %>% 
+  group_by(hb) %>% 
+  filter(year_enter == '2020') %>% 
+  filter(specialty %in% c('Paediatrics (medical & surgical)','Paediatrics (medical)')) %>% 
+  filter(quarters == "Q2") %>% 
+  filter(hb != 'Scotland') %>%
+  summarise(mean_kids = mean(number_admissions)) %>% 
+  arrange(desc(mean_kids))
+
+mean_kids_2020_q2
+```
+
+```{r}
+mean_kids_2020_q2%>% 
+ggplot(aes(x= mean_kids, y = hb ))+
+  geom_point()+
+  labs(
+    title = "Kids Number Admission 2020 Q2",
+    x = "Average Admission numbers",
+    y = "Healthboard"
+  )
+```
+```{r}
+#2021
+mean_kids_2021_q2 <- admin_hb_speciality %>% 
+  select(year_enter, month_enter,day_enter,quarters, number_admissions,specialty,hb) %>% 
+  group_by(hb) %>% 
+  filter(year_enter == '2021') %>% 
+  filter(specialty %in% c('Paediatrics (medical & surgical)','Paediatrics (medical)')) %>% 
+  filter(quarters == "Q2") %>% 
+  filter(hb != 'Scotland') %>%
+  summarise(mean_kids = mean(number_admissions)) %>% 
+  arrange(desc(mean_kids))
+
+mean_kids_2021_q2
+```
+
+```{r}
+mean_kids_2021_q2%>% 
+ggplot(aes(x= mean_kids, y = hb ))+
+  geom_point()+
+  labs(
+    title = "Kids Number Admission 2021 Q2",
+    x = "Average Admission numbers",
+    y = "Healthboard"
+  )
+```
+
+```{r}
+#2022
+mean_kids_2022_q2 <- admin_hb_speciality %>% 
+  select(year_enter, month_enter,day_enter,quarters, number_admissions,specialty,hb) %>% 
+  group_by(hb) %>% 
+  filter(year_enter == '2022') %>% 
+  filter(specialty %in% c('Paediatrics (medical & surgical)','Paediatrics (medical)')) %>% 
+  filter(quarters == "Q2") %>% 
+  filter(hb != 'Scotland') %>%
+  summarise(mean_kids = mean(number_admissions)) %>% 
+  arrange(desc(mean_kids))
+
+mean_kids_2022_q2
+```
+
+```{r}
+mean_kids_2022_q2%>% 
+ggplot(aes(x= mean_kids, y = hb))+
+  geom_point()+
+  labs(
+    title = "Kids Number Admission 2022 Q2",
+    x = "Average Admission numbers",
+    y = "Healthboard"
+  )
+```
+
+    3rd Quarter
+
+
+```{r}
+#2020
+mean_kids_2020_q3 <- admin_hb_speciality %>% 
+  select(year_enter, month_enter,day_enter,quarters, number_admissions,specialty,hb) %>% 
+  group_by(hb) %>% 
+  filter(year_enter == '2020') %>% 
+  filter(specialty %in% c('Paediatrics (medical & surgical)','Paediatrics (medical)')) %>% 
+  filter(quarters == "Q3") %>% 
+  filter(hb!= 'Scotland') %>%
+  summarise(mean_kids = mean(number_admissions)) %>% 
+  arrange(desc(mean_kids))
+
+mean_kids_2020_q3
+```
+
+```{r}
+mean_kids_2020_q3%>% 
+ggplot(aes(x= mean_kids, y = hb ))+
+  geom_point()+
+  labs(
+    title = "Kids Number Admission 2020 Q3",
+    x = "Average Admission numbers",
+    y = "Healthboard"
+  )
+```
+
+```{r}
+mean_kids_2021_q3 <- admin_hb_speciality %>% 
+  select(year_enter, month_enter,day_enter,quarters, number_admissions,specialty,hb) %>% 
+  group_by(hb) %>% 
+  filter(year_enter == '2021') %>% 
+  filter(specialty %in% c('Paediatrics (medical & surgical)','Paediatrics (medical)')) %>% 
+  filter(quarters == "Q3") %>% 
+  filter(hb != 'Scotland') %>%
+  summarise(mean_kids = mean(number_admissions)) %>% 
+  arrange(desc(mean_kids))
+
+mean_kids_2020_q3
+```
+
+```{r}
+mean_kids_2021_q3%>% 
+ggplot(aes(x= mean_kids, y = hb ))+
+  geom_point()+
+  labs(
+    title = "Kids Number Admission 2021 Q3",
+    x = "Average Admission numbers",
+    y = "Healthboard"
+  )
+```
+
+```{r}
+#2022
+mean_kids_2022_q3 <- admin_hb_speciality %>% 
+  select(year_enter, month_enter,day_enter,quarters, number_admissions,specialty,hb) %>% 
+  group_by(hb) %>% 
+  filter(year_enter == '2022') %>% 
+  filter(specialty %in% c('Paediatrics (medical & surgical)','Paediatrics (medical)')) %>% 
+  filter(quarters == "Q3") %>% 
+  filter(hb != 'Scotland') %>%
+  summarise(mean_kids = mean(number_admissions)) %>% 
+  arrange(desc(mean_kids))
+
+mean_kids_2022_q3
+```
+
+```{r}
+mean_kids_2022_q3%>% 
+ggplot(aes(x= mean_kids, y = hb ))+
+  geom_point()+
+  labs(
+    title = "Kids Number Admission 2022 Q3",
+    x = "Average Admission numbers",
+    y = "Healthboard"
+  )
+```
+ 
+    4th Quarter
+
+
+```{r}
+#2020
+mean_kids_2020_q4 <- admin_hb_speciality %>% 
+  select(year_enter, month_enter,day_enter,quarters, number_admissions,specialty,hb) %>% 
+  group_by(hb) %>% 
+  filter(year_enter == '2020') %>% 
+  filter(specialty %in% c('Paediatrics (medical & surgical)','Paediatrics (medical)')) %>% 
+  filter(quarters == "Q4") %>% 
+  filter(hb != 'Scotland') %>%
+  summarise(mean_kids = mean(number_admissions)) %>% 
+  arrange(desc(mean_kids))
+
+mean_kids_2020_q4
+```
+
+```{r}
+mean_kids_2020_q4%>% 
+ggplot(aes(x= mean_kids, y = hb ))+
+  geom_point()+
+  labs(
+    title = "Kids Number Admission 2020 Q4",
+    x = "Average Admission numbers",
+    y = "Healthboard"
+  )
+```
+
+
+```{r}
+#2021
+mean_kids_2021_q4 <- admin_hb_speciality %>% 
+  select(year_enter, month_enter,day_enter,quarters, number_admissions,specialty,hb) %>% 
+  group_by(hb) %>% 
+  filter(year_enter == '2021') %>% 
+  filter(specialty %in% c('Paediatrics (medical & surgical)','Paediatrics (medical)')) %>% 
+  filter(quarters == "Q4") %>% 
+  filter(hb != 'Scotland') %>%
+  summarise(mean_kids = mean(number_admissions)) %>% 
+  arrange(desc(mean_kids))
+
+mean_kids_2021_q4
+```
+
+```{r}
+mean_kids_2021_q4%>% 
+ggplot(aes(x= mean_kids, y = hb ))+
+  geom_point()+
+  labs(
+    title = "Kids Number Admission 2021 Q4",
+    x = "Average Admission numbers",
+    y = "Healthboard"
+  )
+```
+
+```{r}
+
+mean_kids_2022_q4 <- admin_hb_speciality %>% 
+  select(year_enter, month_enter,day_enter,quarters, number_admissions,specialty,hb) %>% 
+  group_by(hb) %>% 
+  filter(year_enter == '2022') %>% 
+  filter(specialty %in% c('Paediatrics (medical & surgical)','Paediatrics (medical)')) %>% 
+  filter(quarters == "Q4") %>% 
+  filter(hb != 'Scotland') %>%
+  summarise(mean_kids = mean(number_admissions)) %>% 
+  arrange(desc(mean_kids))
+
+mean_kids_2022_q4
+```
+
+```{r}
+mean_kids_2022_q4%>% 
+ggplot(aes(x= mean_kids, y = hb ))+
+  geom_point()+
+  geom_point()+
+  labs(
+    title = "Kids Number Admission 2022 Q4",
+    x = "Average Admission numbers",
+    y = "Healthboard"
+  )
+```
+
+
+
+
+
+
