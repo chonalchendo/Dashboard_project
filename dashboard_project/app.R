@@ -105,6 +105,7 @@ ui <- dashboardPage(
         tabName = "demographics",
         h2("NHS Demographics 2016 - 2021"),
         h3("Across All Health Boards"),
+        tags$br(),
         fluidRow(
           column(
             6,
@@ -116,6 +117,7 @@ ui <- dashboardPage(
           )
         ),
         h3("Select Healthboard"),
+        tags$br(),
         fluidRow(
           column(
             2,
@@ -137,6 +139,7 @@ ui <- dashboardPage(
           )
         ),
         h3("Select Demographics"),
+        tags$br(),
         fluidRow(
           column(
             6,
@@ -303,6 +306,7 @@ ui <- dashboardPage(
       tabItem(
         tabName = "covid",
         h2("Impact of Covid on the NHS"),
+        tags$br(),
         fluidRow(
           column(2,
                  checkboxGroupInput(
@@ -315,6 +319,8 @@ ui <- dashboardPage(
           column(10,
                  plotOutput("admission_kidsPlot"))
         ),
+        h3("Total admissions forecasts"),
+        tags$br(),
         fluidRow(
           column(
             6,
@@ -620,9 +626,9 @@ server <- function(input, output) {
           x = "Quarters",
           y = "Admission Numbers"
         )+
-        geom_vline(xintercept = as.numeric(as.Date (yearquarter("2020 Q2"))),col ="firebrick", lwd = 0.05)+
+        geom_vline(xintercept = as.numeric(as.Date (yearquarter("2020 Q2"))),col ="firebrick", lwd = 0.10)+
         annotate("text", x= as.numeric(as.Date (yearquarter("2020 Q2"))), y= 175, label="COVID Lockdown", angle=90, size=5, color="blue") +
-        geom_vline(xintercept =as.numeric(as.Date(yearquarter("2022 Q2"))),col ="firebrick", lwd = 0.05)+
+        geom_vline(xintercept =as.numeric(as.Date(yearquarter("2022 Q2"))),col ="firebrick", lwd = 0.10)+
         annotate("text", x= as.numeric(as.Date (yearquarter("2022 Q2"))), y= 180, label="summer", angle=90, size=5, color="blue")
       
     )
