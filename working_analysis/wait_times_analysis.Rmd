@@ -101,11 +101,15 @@ wait_times_clean
 
 
 ```{r}
+
 geometry_data <- sf::st_read(here::here("../Day 5/wait_times_data/SG_NHS_HealthBoards_2019.shp")) %>%
   clean_names()
 
 geometry_data <- sf::st_read(here:here("../raw_data/Shape_data/SG_NHS_HealthBoards_2019.shp")) %>%
   clean_names()
+
+
+
 
 simple_geo_data <- st_simplify(geometry_data, preserveTopology = FALSE, dTolerance = 1000)
 simple_geo_data
@@ -159,12 +163,14 @@ dropped_joined_waiting %>%
 
 dropped_joined_waiting <- dropped_joined_waiting %>% 
   select(year_month:attendance_greater12hrs, geometry) %>% 
+
   mutate(percent_target_met = number_meeting_target_aggregate/number_of_attendances_aggregate * 100,
          percent_target_met_ep = number_meeting_target_episode/number_of_attendances_episode *100)
 
 dropped_joined_waiting
 
-map_variables <- dropped_joined_waiting %>% select(percent_target_met, percent_target_met_ep)
+
+
   
 ```
 
@@ -177,7 +183,9 @@ wait_times_clean <- wait_times_clean %>%
 
 wait_times_clean
 
+
 # percentage of attendance target met (aggregate)
+
   
 wait_times_clean %>%   
   group_by(year, healthboard) %>% 
@@ -190,9 +198,12 @@ wait_times_clean %>%
 
 # percentage of attendance target met (episode)
 
-wait_times_clean %>%   
+
+
+wait_times_clean %>% 
   group_by(year, healthboard) %>% 
-  summarise(n = mean(percent_target_met_ep)) %>% 
+  summarise(n = mean(percent_target_met)) %>% 
+
   ggplot(aes(year, n, colour = healthboard, group = healthboard)) +
   scale_y_continuous(labels=scales::percent) +
   geom_line() +
@@ -202,6 +213,7 @@ wait_times_clean %>%
 wait_times_clean
   
 ```
+
 
 ```{r}
 write_csv(x = wait_times_clean, file = "../clean_data/wait_times_clean.csv")
@@ -342,4 +354,5 @@ wait_tsib
 ```{r}
 tsib_wait_time
 ```
+
 
