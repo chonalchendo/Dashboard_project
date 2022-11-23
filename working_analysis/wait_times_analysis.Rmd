@@ -101,8 +101,12 @@ wait_times_clean
 
 
 ```{r}
-geometry_data <- sf::st_read("../Day 5/wait_times_data/SG_NHS_HealthBoards_2019.shp") %>%
+geometry_data <- sf::st_read(here::here("../Day 5/wait_times_data/SG_NHS_HealthBoards_2019.shp")) %>%
   clean_names()
+
+geometry_data <- sf::st_read(here:here("../raw_data/Shape_data/SG_NHS_HealthBoards_2019.shp")) %>%
+  clean_names()
+
 simple_geo_data <- st_simplify(geometry_data, preserveTopology = FALSE, dTolerance = 1000)
 simple_geo_data
 
@@ -208,6 +212,9 @@ write_csv(x = dropped_joined_waiting, file = "../clean_data/map_data_waiting_tim
 ```{r}
 st_write(dropped_joined_waiting, here::here("../clean_data/map_data_waiting_t.geojson"), append = TRUE)
 ```
+
+
+
 
 ```{r}
 dropped_joined_waiting
@@ -322,11 +329,17 @@ library(slider)
 
 prophet
 
+wait_tsib
+
 
 ## Look at subplots tommorrow - subseries/ggseason 
 
 ## need to put an id into the main dataset to turn it into a tsibble, then can
 ## do one of these forecasts
 
+```
+
+```{r}
+tsib_wait_time
 ```
 

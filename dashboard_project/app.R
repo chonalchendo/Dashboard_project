@@ -22,7 +22,7 @@ age_choices <-  sort(unique(demographics_data$age))
 
 wait_times_clean <- read_csv(here::here("clean_data/wait_times_clean.csv"))
 
-wait_times_map <- read_csv(here::here("clean_data/map_data_waiting_times.csv"))
+wait_times_map <- st_read(here::here("clean_data/wait_times_map_data.geojson"))
 
 department_type <- sort(unique(wait_times_clean$department_type))
 
@@ -32,7 +32,11 @@ healthboard_wait_times <- sort(unique(wait_times_clean$healthboard))
 
 month_or_year <- wait_times_clean %>% select(month, year)
 
-# map_variables <- dropped_joined_waiting %>% select(percent_target_met, percent_target_met_ep)
+dropped_joined_waiting <- read_csv(here::here("../Dashboard_project/clean_data/dropped_joined_waiting.csv"))
+
+map_variables <- dropped_joined_waiting %>% select(percent_target_met, percent_target_met_ep)
+
+long_wait_variables <- wait_times_clean %>% select(attendance_greater8hrs, attendance_greater12hrs)
 
 
 #beds code
@@ -193,43 +197,48 @@ ui <- dashboardPage(
           column(
             6,
             plotOutput("targetmap")
-          ),
-          # varSelectInput(
-          #   inputId = "variable",
-          #   label = "Select variable",
-          #   data = map_variables,
-          #   multiple = FALSE
-          # )
+          )
         ),
-        varSelectInput(
-        inputId = "timeseriess",
-        label = "Select Month or Year",
-        data = month_or_year,
-        multiple = FALSE
-        ),
-        
-        selectInput(
-          inputId = "healthboard", 
-          label = "Select a Healthboard",
-          choices = healthboard_wait_times
+        fluidRow(
+          column(
+            6,
+            varSelectInput(
+              inputId = "timeseriess",
+              label = "Select Month or Year",
+              data = month_or_year,
+              multiple = FALSE
+            ),
+            selectInput(
+              inputId = "healthboard", 
+              label = "Select a Healthboard",
+              choices = healthboard_wait_times
+            )),
+          
+          column(
+            6,
+            varSelectInput(
+              inputId = "variable",
+              label = "Select Aggregate or Episode Data",
+              data = map_variables,
+              multiple = FALSE
+  
+            )
+          )
+          
         ),
         
         h3("Attendances Greater than 8hrs or 12hrs"),
         fluidRow(
           column(
-            6,
+            12,
             plotOutput("attendance8hrs")
-          ),
-          column(
-            6,
-            plotOutput("attendance12hrs")
           )
         ),
         varSelectInput(
           inputId = "timeseries",
           label = "Select Time Measurement",
           data = month_or_year,
-          multiple = FALSE,
+          multiple = FALSE
             
         ),
         selectInput(
@@ -237,8 +246,24 @@ ui <- dashboardPage(
           label = "Select a Healthboard",
           choices = healthboard_wait_times
         ),
+        varSelectInput(
+          inputId = "which_hr",
+          label = "Select 8hr or 12hr Wait Time",
+          data = long_wait_variables,
+          multiple = FALSE
         
         
+      ),
+      
+      h3("Forecast For Wait Time Targets Not Met"),
+      
+      fluidRow(
+        column(
+          12,
+          plotOutput("wait_time_prophet")
+        )
+      )
+      
       ),
         
       tabItem(
@@ -407,8 +432,8 @@ server <- function(input, output) {
       ggplot(aes(reorder(healthboard, attendance), attendance, fill = healthboard)) +
       geom_col(show.legend = FALSE) +
       theme_classic() +
-      coord_flip() +
-      labs(x = "Healthboard", y = "attendances", title = "Total Attendances by Healthboard (Aggregate)")
+      coord_flip() 
+      #labs(x = "Healthboard", y = "attendances", title = "Total Attendances by Healthboard (Aggregate)")
   )
 
   output$sumepattendance <- renderPlot(
@@ -421,8 +446,8 @@ server <- function(input, output) {
       ggplot(aes(reorder(healthboard, attendance_ep), attendance_ep, fill = healthboard)) +
       geom_col(show.legend = FALSE) +
       theme_classic() +
-      coord_flip() +
-      labs(x = "Healthboard", y = "Attendances (Epiosdes)", title = "Total Attendances by Healthboard (Episode)")  
+      coord_flip() 
+      #labs(x = "Healthboard", y = "Attendances (Epiosdes)", title = "Total Attendances by Healthboard (Episode)")  
       
   )
   
@@ -436,48 +461,54 @@ server <- function(input, output) {
       scale_y_continuous(labels=scales::percent) +
       geom_line(show.legend = FALSE) +
       theme_classic() +
-      labs(x = "Year", y = "Percentage", title = "Yearly Healthboard Attendance Target Met (Percentage)") +
+      #labs(x = "Time Frame", y = "Percentage", title = "Yearly Healthboard Attendance Target Met (Percentage)") +
       theme(axis.text.x = element_text(angle=45, hjust=1))
   )
   
-  # output$targetmap <- renderPlot(
-  #   dropped_joined_waiting %>% 
-  #     ggplot(aes(fill = !!input$variable)) +
-  #     geom_sf() +
-  #     theme_map() +
-  #     theme(legend.position = "right")
-  #     
-  # )
+  output$targetmap <- renderPlot(
+    wait_times_map %>%
+      ggplot(aes(fill = !!input$variable)) +
+      geom_sf() +
+      theme_map() +
+      theme(legend.position = "right")
+
+  )
   
   output$attendance8hrs <- renderPlot(
     wait_times_clean %>%
       filter(healthboard %in% input$healthboards) %>% 
       group_by(!!input$timeseries) %>%
-      summarise(avg_attendance_greater_8hrs = mean(attendance_greater8hrs, na.rm = TRUE)) %>%
-      ggplot(aes(!!input$timeseries, avg_attendance_greater_8hrs, colour = input$healthboards, group = input$healthboards)) +
+      summarise(eight_or_12_avg = mean(!!input$which_hr, na.rm = TRUE)) %>%
+      ggplot(aes(!!input$timeseries, eight_or_12_avg, colour = input$healthboards, group = input$healthboards)) +
       geom_line(show.legend = FALSE) +
       theme_classic() +
-      theme(axis.text.x = element_text(angle=45, hjust=1))
+      theme(axis.text.x = element_text(angle=45, hjust=1)) 
     
     )
   
-  output$attendance12hrs <- renderPlot(
-    wait_times_clean %>%
-      filter(healthboard %in% input$healthboards) %>%
-      group_by(!!input$timeseries) %>%
-      summarise(avg_attendance_greater_12hrs = mean(attendance_greater12hrs, na.rm = TRUE)) %>%
-      ggplot(aes(!!input$timeseries, avg_attendance_greater_12hrs, group = input$healthboards, colour = input$healthboards)) +
-      geom_line(show.legend = FALSE) +
-      theme_classic() +
-      theme(axis.text.x = element_text(angle=45, hjust=1))
-    )
-
   
-  
-  
-  
-  
-  
+  output$wait_time_prophet <- renderPlot({
+    
+    wait_not_targ_prophet <- target_not_met_tsib %>% 
+      mutate(ds = year_month,
+             y = avg_target_not_met)
+    
+    wait_not_targ_prophet <- column_to_rownames(wait_not_targ_prophet, var = "ds") 
+    
+    wait_not_targ_prophet <-  mutate(wait_not_targ_prophet, ds = year_month)
+    
+    prophet_no_targ <- prophet(wait_not_targ_prophet)
+    
+    future_no_targ <- make_future_dataframe(prophet_no_targ, periods = 600)
+    
+    forecast_p_no_targ <- predict(prophet_no_targ, future_no_targ)
+    
+    plot(prophet_no_targ, forecast_p_no_targ) +
+      xlab("Year") +
+      ylab("Targets Not Being Met") +
+      labs(title = "Prophet forecast of Target Not Being Met Aggregate") +
+      theme_classic()
+  })
   
   
   #Beds Output
