@@ -94,6 +94,8 @@ deprivation_joined %>%
 ```{r}
 # what does the data look like for quarter 1 and 4 only?
 
+## can put this stuff into timeseries plots
+
 deprivation_joined %>% 
   drop_na() %>% 
   mutate(simd = as.character(simd)) %>% 
