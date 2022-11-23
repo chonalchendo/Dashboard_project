@@ -7,6 +7,9 @@ library(urca)
 library(fable)
 library(prophet)
 library(lubridate)
+library(sf)
+library(leaflet)
+library(htmltools)
 
 #demographics code
 demographics_data <- read_csv(here::here("clean_data/demographics.csv"))
@@ -29,12 +32,31 @@ healthboard_wait_times <- sort(unique(wait_times_clean$healthboard))
 
 month_or_year <- wait_times_clean %>% select(month, year)
 
-map_variables <- dropped_joined_waiting %>% select(percent_target_met, percent_target_met_ep)
+# map_variables <- dropped_joined_waiting %>% select(percent_target_met, percent_target_met_ep)
 
 
 #beds code
 
+beds <- read_csv(here::here("clean_data/beds_16_to_21.csv")) %>% 
+  mutate(quarter = yearquarter(quarter))
 
+beds_specialty <- sort(unique(beds$specialty_name))
+
+beds_map <- st_read(here::here("clean_data/map_beds_4.geojson"))
+
+pal <- colorBin("YlOrRd", domain = beds_map$mean_percent_occ_board, bins = 7)
+
+labels <- sprintf(
+  "<strong>%s</strong><br/>%g &#x25 occupied beds on average <br> from Q4 2017 to Q3 2021",
+  beds_map$healthboard, beds_map$mean_percent_occ_board
+) %>% lapply(htmltools::HTML)
+
+pal2 <- colorBin("YlOrRd", domain = beds_map$mean_wards_over_ninety, bins =5)
+
+labels2 <- sprintf(
+  "<strong>%s</strong><br/>%g &#x25 of wards over 90 <br> percent occupied from <br>Q4 2017 to Q3 2021",
+  beds_map$healthboard, beds_map$mean_wards_over_ninety
+) %>% lapply(htmltools::HTML)
 
 
 #covid code
@@ -154,12 +176,12 @@ ui <- dashboardPage(
             6,
             plotOutput("targetmap")
           ),
-          varSelectInput(
-            inputId = "variable",
-            label = "Select variable",
-            data = map_variables,
-            multiple = FALSE
-          )
+          # varSelectInput(
+          #   inputId = "variable",
+          #   label = "Select variable",
+          #   data = map_variables,
+          #   multiple = FALSE
+          # )
         ),
         varSelectInput(
         inputId = "timeseriess",
@@ -202,7 +224,28 @@ ui <- dashboardPage(
       ),
         
       tabItem(
-        tabName = "beds"
+        tabName = "beds",
+        h2("Bed occupancy across healthboards and specialities"),
+        fluidRow(
+          column(
+            6,
+            leafletOutput("map_occ")
+          ),
+          column(
+            6,
+            leafletOutput("map_over_ninety")
+          )
+        ),
+        fluidRow(
+          column(
+            6,
+            plotOutput("beds_board_spec")
+          ),
+          column(
+            6,
+            plotOutput("beds_over_ninety")
+          )
+        )
       ),
       tabItem(
         tabName = "covid",
@@ -350,14 +393,14 @@ server <- function(input, output) {
       theme(axis.text.x = element_text(angle=45, hjust=1))
   )
   
-  output$targetmap <- renderPlot(
-    dropped_joined_waiting %>% 
-      ggplot(aes(fill = !!input$variable)) +
-      geom_sf() +
-      theme_map() +
-      theme(legend.position = "right")
-      
-  )
+  # output$targetmap <- renderPlot(
+  #   dropped_joined_waiting %>% 
+  #     ggplot(aes(fill = !!input$variable)) +
+  #     geom_sf() +
+  #     theme_map() +
+  #     theme(legend.position = "right")
+  #     
+  # )
   
   output$attendance8hrs <- renderPlot(
     wait_times_clean %>%
@@ -392,7 +435,64 @@ server <- function(input, output) {
   
   #Beds Output
   
+  output$map_occ <- renderLeaflet({
+    leaflet(beds_map) %>%
+      addTiles() %>% 
+      addPolygons(fillColor = ~pal(mean_percent_occ_board),
+                  color = "white",
+                  fillOpacity = 0.7,
+                  label = labels,
+                  weight = 2) %>% 
+      addLegend(pal = pal,
+                values = ~mean_percent_occ_board,
+                opacity = 0.7,
+                title = NULL,
+                position = "bottomright") %>% 
+      setView(lat = 58.0000, lng = -5.0000, zoom = 5)
+  })
   
+  output$map_over_ninety <- renderLeaflet({
+    leaflet(beds_map) %>%
+      addTiles() %>% 
+      addPolygons(fillColor = ~pal2(mean_wards_over_ninety),
+                  color = "white",
+                  fillOpacity = 0.7,
+                  label = labels2,
+                  weight = 2) %>% 
+      addLegend(pal = pal2,
+                values = ~mean_wards_over_ninety,
+                opacity = 0.7,
+                title = NULL,
+                position = "bottomright")%>% 
+      setView(lat = 58.0000, lng = -5.0000, zoom = 5)
+  })
+  
+  output$beds_board_spec <- renderPlot({
+    beds%>% 
+      filter(healthboard == "Ayrshire and Arran") %>% 
+      filter(specialty_name == "All Acute") %>% 
+      ggplot() +
+      geom_point(aes(x = quarter, y = percentage_occupancy, group = quarter), alpha = 0.2)+
+      geom_line(aes(x = quarter, y = percentage_occupancy_for_speciality, group = healthboard))+
+      labs(title = "Percentage occupancy of beds for chosen healthboard",
+           y = "Percent occupancy of beds",
+           x = "Year/Quarter")+
+      geom_hline(yintercept = 90, colour = "red")+
+      theme_bw()+
+      theme(panel.grid.minor.x = element_blank())+
+      ylim(NA, 100)
+  })
+  
+  output$beds_over_ninety <- renderPlot({
+    beds %>% 
+      filter(percent_wards_over_ninety != 0) %>% 
+      filter(healthboard == "Fife") %>% 
+      ggplot(aes(x = quarter, y = percent_wards_over_ninety, group = healthboard, colour = healthboard)) +
+      geom_line(show.legend = FALSE)+
+      labs(title = "Percent of speciality wards in healthboard with over 90% bed occupancy",
+           y = "Percent of wards with over 90% occupancy",
+           x = "Year/Quarter")
+  })
   
   
   
