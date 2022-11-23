@@ -489,10 +489,10 @@ server <- function(input, output) {
   output$beds_board_spec <- renderPlot({
     beds%>% 
       filter(healthboard %in% input$beds_healthboard) %>% 
-      filter(specialty_name %in% beds_specialty) %>% 
+      filter(specialty_name %in% input$beds_specialty) %>% 
       ggplot() +
       geom_point(aes(x = quarter, y = percentage_occupancy, group = quarter), alpha = 0.2)+
-      geom_line(aes(x = quarter, y = percentage_occupancy_for_speciality, group = input$beds_specialty))+
+      geom_line(aes(x = quarter, y = percentage_occupancy_for_speciality))+
       labs(title = "Percentage occupancy of beds for chosen healthboard",
            y = "Percent occupancy of beds",
            x = "Year/Quarter")+
