@@ -247,34 +247,52 @@ ui <- dashboardPage(
         fluidRow(
           column(
             6,
+            h4("Map showing overall bed occupancy by healthboard"),
             leafletOutput("map_occ")
           ),
           column(
             6,
+            h4("Map showing percentage of wards in healthboard with an occupancy over 90%"),
             leafletOutput("map_over_ninety")
           )
         ),
+        fluidRow(
         column(
           6,
         selectInput(
           inputId = "beds_healthboard", 
           label = "Select a Healthboard",
           choices = beds_healthboard
+        ),
+        selectInput(
+          inputId = "beds_specialty",
+          label = "Select a Specialty",
+          choices = beds_specialty
         )
         ),
         column(
           6,
           selectInput(
-            inputId = "beds_specialty",
-            label = "Select a Specialty",
-            choices = beds_specialty
+            inputId = "beds_healthboard_2", 
+            label = "Select a Healthboard",
+            choices = beds_healthboard
+          )
+        )),
+        fluidRow(
+          column(6,
+                 h4("Percentage occupancy of beds for chosen healthboard and specialty"),
+                h5("Points showing individual department occupancy, Lines showing average occupancy")),
+          
+          column(6,
+                 h4("Percentage of speciality wards in healthboard with over 90% occupancy")
           )
         ),
         
         fluidRow(
           column(
             6,
-            plotOutput("beds_board_spec")
+            plotOutput("beds_board_spec"),
+            h6("Note - Not all departments available in all time periods and healthboards")
           ),
           column(
             6,
@@ -521,24 +539,26 @@ server <- function(input, output) {
       ggplot() +
       geom_point(aes(x = quarter, y = percentage_occupancy, group = quarter), alpha = 0.2)+
       geom_line(aes(x = quarter, y = percentage_occupancy_for_speciality))+
-      labs(title = "Percentage occupancy of beds for chosen healthboard",
-           y = "Percent occupancy of beds",
+      labs(y = "Percent occupancy of beds",
            x = "Year/Quarter")+
       geom_hline(yintercept = 90, colour = "red")+
       theme_bw()+
-      theme(panel.grid.minor.x = element_blank())+
+      theme(panel.grid.minor.x = element_blank(),
+            panel.grid.minor.y = element_blank())+
       ylim(NA, 100)
   })
   
   output$beds_over_ninety <- renderPlot({
     beds %>% 
       filter(percent_wards_over_ninety != 0) %>% 
-      filter(healthboard %in% input$beds_healthboard) %>% 
-      ggplot(aes(x = quarter, y = percent_wards_over_ninety, group = healthboard, colour = healthboard)) +
+      filter(healthboard %in% input$beds_healthboard_2) %>% 
+      ggplot(aes(x = quarter, y = percent_wards_over_ninety, group = healthboard)) +
       geom_line(show.legend = FALSE)+
-      labs(title = "Percent of speciality wards in healthboard with over 90% bed occupancy",
-           y = "Percent of wards with over 90% occupancy",
-           x = "Year/Quarter")
+      labs(y = "Percent of wards with over 90% occupancy",
+           x = "Year/Quarter")+
+      theme_bw()+
+      theme(panel.grid.minor.x = element_blank(),
+            panel.grid.minor.y = element_blank())
   })
   
   
