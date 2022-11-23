@@ -199,3 +199,134 @@ wait_times_clean
   
 ```
 
+```{r}
+write_csv(x = wait_times_clean, file = "../clean_data/wait_times_clean.csv")
+
+write_csv(x = dropped_joined_waiting, file = "../clean_data/map_data_waiting_times.csv")
+```
+
+```{r}
+st_write(dropped_joined_waiting, here::here("../clean_data/map_data_waiting_t.geojson"), append = TRUE)
+```
+
+```{r}
+dropped_joined_waiting
+```
+
+```{r}
+boxplot(wait_times_clean$attendance_greater8hrs ~ wait_times_clean$month)
+```
+
+```{r}
+ts_wait_time <- wait_times_clean %>% 
+  mutate(year_month = yearmonth(x = year_month)) %>% 
+  as_tsibble(key = c(healthboard, hscp_name, location_name), index = year_month)
+
+ts_wait_time <- wait_times_clean %>%
+  select(year_month, number_meeting_target_aggregate)
+
+wait_times_clean %>% 
+  select(year_month, treatment_location, healthboard, hscp_name, location_name,
+         number_meeting_target_aggregate) %>% 
+  mutate(year_month = yearmonth(x = year_month)) %>% 
+  as_tsibble(key = c(healthboard, treatment_location, hscp_name, location_name), index = year_month)
+
+tsib_wait_time <- ts_wait_time %>% 
+  rowid_to_column(var = "id") %>% 
+  mutate(year_month = yearmonth(year_month)) %>% 
+  as_tsibble(index = year_month, key = id)
+
+
+
+wait_tsib <- tsib_wait_time %>% 
+  index_by(year_month) %>% 
+  summarise(avg_target_met_agg = mean(number_meeting_target_aggregate))
+
+wait_tsib %>% 
+  autoplot(avg_target_met_agg) 
+
+## Rolling wait times 
+
+## doesnt work 
+
+rolling_wait <- ts_wait_time %>% 
+  group_by(year_month) %>% 
+  summarise(avg_meeting_target = mean(number_meeting_target_aggregate))
+
+roll_wait <- rolling_wait %>% 
+  mutate(temp_moving_avg = slide_dbl(
+    .x = avg_meeting_target, 
+    .f = ~ mean(., na.rm = TRUE),
+    .before = 1000,
+    .after = 1000
+  )
+  )
+
+roll_wait
+
+ggplot(roll_wait) + 
+  geom_line(aes(x = year_month, y = avg_meeting_target), colour = "grey") + 
+  geom_line(aes(x = year_month, y = temp_moving_avg), colour = "red")
+  
+  
+```
+
+```{r}
+wait_tsib <- tsib_wait_time %>% 
+  index_by(year_month) %>% 
+  summarise(avg_target_met_agg = mean(number_meeting_target_aggregate))
+
+week_fit <- wait_tsib %>% 
+  model(
+    # snaive = SNAIVE(avg_target_met_agg ~ lag("year_month")),
+    # mean_model = MEAN(avg_target_met_agg),
+    arima = ARIMA(avg_target_met_agg)
+  )
+
+forecast_week <- week_fit %>% 
+  fabletools::forecast(h = 120)
+forecast_week
+
+forecast_week %>%
+  autoplot(wait_tsib, level = NULL) +
+  ggtitle("10 Year Forecast of NHS Targets Met") +
+  xlab("Year") +
+  ylab("Average Target Met") +
+  guides(colour = guide_legend(title = "Forecast")) +
+  theme_classic()
+
+## Prophet prediction
+
+      wait_prophet <- wait_tsib %>% 
+        mutate(ds = year_month,
+               y = avg_target_met_agg)
+      
+      wait_prophet <- column_to_rownames(wait_prophet, var = "ds") 
+      
+      wait_prophet <-  mutate(wait_prophet, ds = year_month)
+      
+      prophet <- prophet(wait_prophet)
+      
+      future <- make_future_dataframe(prophet, periods = 600)
+      
+      forecast_p <- predict(prophet, future)
+      
+      plot(prophet, forecast_p) +
+        xlab("Time") +
+        ylab("target_met_agg") +
+        labs(title = "Prophet forecast of Target Met Aggregate")
+        
+      
+library(slider)
+      
+
+prophet
+
+
+## Look at subplots tommorrow - subseries/ggseason 
+
+## need to put an id into the main dataset to turn it into a tsibble, then can
+## do one of these forecasts
+
+```
+

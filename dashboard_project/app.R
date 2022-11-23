@@ -17,6 +17,10 @@ age_choices <-  sort(unique(demographics_data$age))
 
 #waiting times code
 
+wait_times_clean <- read_csv(here::here("clean_data/wait_times_clean.csv"))
+
+wait_times_map <- read_csv(here::here("clean_data/map_data_waiting_times.csv"))
+
 department_type <- sort(unique(wait_times_clean$department_type))
 
 year <- sort(unique(wait_times_clean$year))
