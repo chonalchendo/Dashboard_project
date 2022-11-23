@@ -42,6 +42,8 @@ beds <- read_csv(here::here("clean_data/beds_16_to_21.csv")) %>%
 
 beds_specialty <- sort(unique(beds$specialty_name))
 
+beds_healthboard <- sort(unique(beds$healthboard))
+
 beds_map <- st_read(here::here("clean_data/map_beds_4.geojson"))
 
 pal <- colorBin("YlOrRd", domain = beds_map$mean_percent_occ_board, bins = 7)
@@ -236,6 +238,23 @@ ui <- dashboardPage(
             leafletOutput("map_over_ninety")
           )
         ),
+        column(
+          6,
+        selectInput(
+          inputId = "beds_healthboard", 
+          label = "Select a Healthboard",
+          choices = beds_healthboard
+        )
+        ),
+        column(
+          6,
+          selectInput(
+            inputId = "beds_specialty",
+            label = "Select a Specialty",
+            choices = beds_specialty
+          )
+        ),
+        
         fluidRow(
           column(
             6,
@@ -469,11 +488,11 @@ server <- function(input, output) {
   
   output$beds_board_spec <- renderPlot({
     beds%>% 
-      filter(healthboard == "Ayrshire and Arran") %>% 
-      filter(specialty_name == "All Acute") %>% 
+      filter(healthboard %in% input$beds_healthboard) %>% 
+      filter(specialty_name %in% beds_specialty) %>% 
       ggplot() +
       geom_point(aes(x = quarter, y = percentage_occupancy, group = quarter), alpha = 0.2)+
-      geom_line(aes(x = quarter, y = percentage_occupancy_for_speciality, group = healthboard))+
+      geom_line(aes(x = quarter, y = percentage_occupancy_for_speciality, group = input$beds_specialty))+
       labs(title = "Percentage occupancy of beds for chosen healthboard",
            y = "Percent occupancy of beds",
            x = "Year/Quarter")+
@@ -486,7 +505,7 @@ server <- function(input, output) {
   output$beds_over_ninety <- renderPlot({
     beds %>% 
       filter(percent_wards_over_ninety != 0) %>% 
-      filter(healthboard == "Fife") %>% 
+      filter(healthboard %in% input$beds_healthboard) %>% 
       ggplot(aes(x = quarter, y = percent_wards_over_ninety, group = healthboard, colour = healthboard)) +
       geom_line(show.legend = FALSE)+
       labs(title = "Percent of speciality wards in healthboard with over 90% bed occupancy",
