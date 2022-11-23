@@ -11,7 +11,7 @@ library(fable)
 library(urca)
 library(prophet)
 library(htmltools)
-library(astsa)
+# library(astsa)
 
 ```
 
@@ -51,6 +51,12 @@ beds_map <- st_read(here("../../clean_data/map_beds_4.geojson"))
 beds_map
 
 ```
+
+```{r}
+beds_specialty <- sort(unique(beds$specialty_name))
+beds_specialty
+```
+
 
 
 ```{r}
@@ -182,7 +188,8 @@ avg_beds %>%
   ggplot(aes(x = quarter, y = percent_wards_over_ninety, group = healthboard, colour = healthboard)) +
   geom_line()
 
-avg_beds %>% 
+beds %>% 
+  filter(percent_wards_over_ninety != 0) %>% 
     filter(healthboard == "Fife") %>% 
   ggplot(aes(x = quarter, y = percent_wards_over_ninety, group = healthboard, colour = healthboard)) +
   geom_line(show.legend = FALSE)+
@@ -199,7 +206,7 @@ labels2 <- sprintf(
   beds_map$healthboard, beds_map$mean_wards_over_ninety
 ) %>% lapply(htmltools::HTML)
 
-map <- leaflet(beds_map) %>%
+map_2 <- leaflet(beds_map) %>%
   addTiles() %>% 
   addPolygons(fillColor = ~pal2(mean_wards_over_ninety),
               color = "white",
@@ -240,3 +247,91 @@ forecast_2 %>%
 
 Forecasting difficult using 5 years of quarterly data, especially when there was a major disruption to normal operations (COVID) in the middle.
 
+
+
+
+beds <- read_csv(here::here("../clean_data/beds_16_to_21.csv")) %>% 
+  mutate(quarter = yearquarter(quarter))
+
+beds_specialty <- sort(unique(beds$specialty_name))
+
+beds_map <- st_read(here("../../clean_data/map_beds_4.geojson"))
+
+pal <- colorBin("YlOrRd", domain = beds_map$mean_percent_occ_board, bins = 7)
+
+labels <- sprintf(
+  "<strong>%s</strong><br/>%g &#x25 occupied beds on average <br> from Q4 2017 to Q3 2021",
+  beds_map$healthboard, beds_map$mean_percent_occ_board
+) %>% lapply(htmltools::HTML)
+
+pal2 <- colorBin("YlOrRd", domain = beds_map$mean_wards_over_ninety, bins =5)
+
+labels2 <- sprintf(
+  "<strong>%s</strong><br/>%g &#x25 of wards over 90 <br> percent occupied from <br>Q4 2017 to Q3 2021",
+  beds_map$healthboard, beds_map$mean_wards_over_ninety
+) %>% lapply(htmltools::HTML
+
+
+
+
+
+
+  output$map_occ <- renderLeaflet({
+  leaflet(beds_map) %>%
+    addTiles() %>% 
+    addPolygons(fillColor = ~pal(mean_percent_occ_board),
+                color = "white",
+                fillOpacity = 0.7,
+                label = labels,
+                weight = 2) %>% 
+    addLegend(pal = pal,
+              values = ~mean_percent_occ_board,
+              opacity = 0.7,
+              title = NULL,
+              position = "bottomright") %>% 
+    setView(lat = 58.0000, lng = -5.0000, zoom = 5)
+})
+  
+  output$map_over_ninety <- renderLeaflet({
+    leaflet(beds_map) %>%
+    addTiles() %>% 
+    addPolygons(fillColor = ~pal2(mean_wards_over_ninety),
+                color = "white",
+                fillOpacity = 0.7,
+                label = labels2,
+                weight = 2) %>% 
+    addLegend(pal = pal2,
+              values = ~mean_wards_over_ninety,
+              opacity = 0.7,
+              title = NULL,
+              position = "bottomright")%>% 
+    setView(lat = 58.0000, lng = -5.0000, zoom = 5)
+  })
+  
+  output$beds_board_spec <- renderPlot({
+    beds%>% 
+    filter(healthboard == "Ayrshire and Arran") %>% 
+    filter(specialty_name == "All Acute") %>% 
+    ggplot() +
+    geom_point(aes(x = quarter, y = percentage_occupancy, group = quarter), alpha = 0.2)+
+    geom_line(aes(x = quarter, y = percentage_occupancy_for_speciality, group = healthboard))+
+    labs(title = "Percentage occupancy of beds for chosen healthboard",
+         y = "Percent occupancy of beds",
+         x = "Year/Quarter")+
+    geom_hline(yintercept = 90, colour = "red")+
+    theme_bw()+
+    theme(panel.grid.minor.x = element_blank())+
+    ylim(NA, 100)
+  })
+  
+  output$beds_over_ninety <- renderPlot({
+    beds %>% 
+    filter(percent_wards_over_ninety != 0) %>% 
+    filter(healthboard == "Fife") %>% 
+    ggplot(aes(x = quarter, y = percent_wards_over_ninety, group = healthboard, colour = healthboard)) +
+    geom_line(show.legend = FALSE)+
+    labs(title = "Percent of wards in healthboard with over 90% bed occupancy",
+         y = "Percent of wards with over 90% occupancy",
+         x = "Year/Quarter")
+  })
+  
