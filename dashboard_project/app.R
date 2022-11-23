@@ -66,7 +66,23 @@ labels2 <- sprintf(
 covid_age_sex <- read_csv(here::here("clean_data/covid_age_sex.csv"))
 covid_tsibble <- as_tsibble(covid_age_sex, index = week_ending)
 
+#Kids_admission_Nacho
 
+admin_hb_speciality <- read_csv(here::here("clean_data/admin_hb_speciality.csv"))
+
+
+kids_hb_noscot <- admin_hb_speciality %>% 
+  filter(!hb %in%  c("Scotland", NA_character_, "NHS Orkney", "NHS Shetland"))
+
+kids_hb <- unique(kids_hb_noscot$hb)
+
+total_mean_kids_quarters_no_scotland<- admin_hb_speciality %>% 
+  mutate(quarters = yearquarter(week_ending))%>% 
+  group_by(hb, quarters) %>% 
+  filter(specialty %in% c('Paediatrics (medical & surgical)','Paediatrics (medical)')) %>% 
+  filter(hb!= 'Scotland') %>%
+  summarise(mean_kids = mean(number_admissions)) %>% 
+  arrange(desc(mean_kids))
 
 
 # Define UI for application that draws a histogram
@@ -269,6 +285,18 @@ ui <- dashboardPage(
       tabItem(
         tabName = "covid",
         h2("Impact of Covid on the NHS"),
+        fluidRow(
+          column(2,
+                 checkboxGroupInput(
+                   inputId = ("kids_admission"), 
+                   label = "Healthboard",
+                   choices = kids_hb, 
+                   selected = kids_hb
+                 )
+                 ),
+          column(10,
+                 plotOutput("admission_kidsPlot"))
+        ),
         fluidRow(
           column(
             6,
@@ -560,8 +588,27 @@ server <- function(input, output) {
         ylab("Total admissions") +
         labs(title = "Prophet forecast of total admissions")
     }
-
   )
+    #Kids_nacho
+    output$admission_kidsPlot <- renderPlot(
+      total_mean_kids_quarters_no_scotland %>% 
+        filter(hb %in% input$kids_admission) %>% 
+        ggplot(aes(x= quarters , y = mean_kids, colour = hb))+
+        geom_line()+
+        labs(
+          title = "Kids Number Admission by Quarters/Healthboard",
+          x = "Quarters",
+          y = "Admission Numbers"
+        )+
+        geom_vline(xintercept = as.numeric(as.Date (yearquarter("2020 Q2"))),col ="firebrick", lwd = 0.05)+
+        annotate("text", x= as.numeric(as.Date (yearquarter("2020 Q2"))), y= 175, label="COVID Lockdown", angle=90, size=5, color="blue") +
+        geom_vline(xintercept =as.numeric(as.Date(yearquarter("2022 Q2"))),col ="firebrick", lwd = 0.05)+
+        annotate("text", x= as.numeric(as.Date (yearquarter("2022 Q2"))), y= 180, label="summer", angle=90, size=5, color="blue")
+      
+    )
+    
+
+  
 
 }
 # Run the application 
