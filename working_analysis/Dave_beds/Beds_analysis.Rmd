@@ -1,4 +1,5 @@
 ```{r}
+
 library(tidyverse)
 library(janitor)
 library(lubridate)
@@ -8,6 +9,10 @@ library(leaflet)
 library(tsibble)
 library(fable)
 library(urca)
+library(prophet)
+library(htmltools)
+library(astsa)
+
 ```
 
 
@@ -18,6 +23,10 @@ library(urca)
 beds <- read_csv(here("../../clean_data/beds_16_to_21.csv")) %>% 
   mutate(quarter = yearquarter(quarter))
 beds
+
+avg_beds <- read_csv(here("../../clean_data/avg_beds_16_to_21.csv")) %>% 
+  mutate(quarter = yearquarter(quarter))
+avg_beds
 
 #for forecast
 tsibble_beds <- read_csv(here("../../clean_data/tsibble_beds_16_to_21_percent.csv"))
@@ -45,17 +54,44 @@ beds_map
 
 
 ```{r}
+beds
+avg_beds
+
 beds %>% 
   ggplot(aes(x = quarter, y = percentage_occupancy_by_board, group = healthboard, colour = healthboard)) +
   geom_line()+
   labs(title = "Percentage occupancy of beds for healthboards")
 
 beds%>% 
-  filter(healthboard == "Fife") %>% 
-  ggplot(aes(x = quarter, y = percentage_occupancy_by_board, group = healthboard, colour = healthboard)) +
+  filter(healthboard == "Ayrshire and Arran") %>% 
+  ggplot(aes(x = quarter, y = percentage_occupancy_by_board, group = healthboard)) +
   geom_line()+
-  labs(title = "Percentage occupancy of beds for Fife")
+  geom_line(show.legend = FALSE)+
+  labs(title = "Percentage occupancy of beds for chosen healthboard",
+       y = "Percent occupancy of beds",
+       x = "Year/Quarter")+
+  geom_hline(yintercept = 90, colour = "red")+
+  theme_bw()+
+  theme(panel.grid.minor.x = element_blank())+
+  ylim(NA, 100)
 
+beds%>% 
+  filter(healthboard == "Ayrshire and Arran") %>% 
+  filter(specialty_name == "All Acute") %>% 
+  ggplot() +
+  geom_point(aes(x = quarter, y = percentage_occupancy, group = quarter), alpha = 0.2)+
+  geom_line(aes(x = quarter, y = percentage_occupancy_for_speciality, group = healthboard))+
+  labs(title = "Percentage occupancy of beds for chosen healthboard",
+       y = "Percent occupancy of beds",
+       x = "Year/Quarter")+
+  geom_hline(yintercept = 90, colour = "red")+
+  theme_bw()+
+  theme(panel.grid.minor.x = element_blank())+
+  ylim(NA, 100)
+
+
+beds %>% 
+  distinct(specialty_name)
 ```
 ggplot non interactive map
 
@@ -73,21 +109,45 @@ beds_map %>%
 pal <- colorBin("YlOrRd", domain = beds_map$mean_percent_occ_board, bins = 7)
 
 labels <- sprintf(
-  "<strong>%s</strong><br/>%g percent occupied ",
+  "<strong>%s</strong><br/>%g &#x25 occupied beds on average <br> from Q4 2017 to Q3 2021",
   beds_map$healthboard, beds_map$mean_percent_occ_board
 ) %>% lapply(htmltools::HTML)
+
+
+
+tag.map.title <- tags$style(HTML("
+  .leaflet-control.map-title { 
+    transform: translate(-50%,20%);
+    position: fixed !important;
+    left: 50%;
+    text-align: center;
+    padding-left: 10px; 
+    padding-right: 10px; 
+    background: rgba(255,255,255,0.75);
+    font-weight: bold;
+    font-size: 28px;
+  }
+"))
+
+title <- tags$div(
+  tag.map.title, HTML("Average percent occupancy of beds across NHS Sotland healthboards")
+)  
+
 
 map <- leaflet(beds_map) %>%
   addTiles() %>% 
   addPolygons(fillColor = ~pal(mean_percent_occ_board),
               color = "white",
               fillOpacity = 0.7,
-              label = labels) %>% 
+              label = labels,
+              weight = 2) %>% 
   addLegend(pal = pal,
             values = ~mean_percent_occ_board,
             opacity = 0.7,
             title = NULL,
-            position = "bottomright")
+            position = "bottomright") %>% 
+  setView(lat = 58.0000, lng = -5.0000, zoom = 5)
+
 map
 ```
 
@@ -97,18 +157,19 @@ Forecast data
 
 fit <- tsibble_beds %>% 
   model(
-    snaive = SNAIVE(percentage_occupancy_by_board),
-    mean_model = MEAN(percentage_occupancy_by_board),
-    arima = ARIMA(percentage_occupancy_by_board)
+    snaive = SNAIVE(percentage_occupancy_by_board, level = 95)
   )
 
+    # mean_model = MEAN(percentage_occupancy_by_board),
+    # arima = ARIMA(percentage_occupancy_by_board)
+
 forecast_1 <- fit %>%
-  fabletools::forecast(h = 12)
+  fabletools::forecast(h = 4)
 forecast_1
 
 
 forecast_1 %>% 
-  filter(healthboard == "Ayrshire and Arran") %>% 
+  filter(healthboard == "Borders") %>% 
   autoplot(tsibble_beds)+
   guides(colour = guide_legend(title = "Forecast"))
   
@@ -117,22 +178,24 @@ forecast_1 %>%
 
 
 ```{r}
-beds %>% 
-  filter(percent_wards_over_ninety != 0) %>% 
+avg_beds %>% 
   ggplot(aes(x = quarter, y = percent_wards_over_ninety, group = healthboard, colour = healthboard)) +
   geom_line()
 
-beds %>% 
-  filter(percent_wards_over_ninety != 0) %>% 
+avg_beds %>% 
     filter(healthboard == "Fife") %>% 
   ggplot(aes(x = quarter, y = percent_wards_over_ninety, group = healthboard, colour = healthboard)) +
-  geom_line()
+  geom_line(show.legend = FALSE)+
+  labs(title = "Percent of wards in healthboard with over 90% bed occupancy",
+       y = "Percent of wards with over 90% occupancy",
+       x = "Year/Quarter")
+
 ```
 ```{r}
 pal2 <- colorBin("YlOrRd", domain = beds_map$mean_wards_over_ninety, bins =5)
 
 labels2 <- sprintf(
-  "<strong>%s</strong><br/>%g percent of wards over 90 percent occupied from Q4 2017 to Q3 2021",
+  "<strong>%s</strong><br/>%g &#x25 of wards over 90 <br> percent occupied from <br>Q4 2017 to Q3 2021",
   beds_map$healthboard, beds_map$mean_wards_over_ninety
 ) %>% lapply(htmltools::HTML)
 
@@ -141,17 +204,18 @@ map <- leaflet(beds_map) %>%
   addPolygons(fillColor = ~pal2(mean_wards_over_ninety),
               color = "white",
               fillOpacity = 0.7,
-              label = labels2) %>% 
+              label = labels2,
+              weight = 2) %>% 
   addLegend(pal = pal2,
             values = ~mean_wards_over_ninety,
             opacity = 0.7,
             title = NULL,
-            position = "bottomright")
+            position = "bottomright")%>% 
+  setView(lat = 58.0000, lng = -5.0000, zoom = 5)
 map
 ```
 
 ```{r}
-
 
 fit <- tsibble_wards %>% 
   model(
@@ -161,16 +225,18 @@ fit <- tsibble_wards %>%
   )
 
 forecast_2 <- fit %>%
-  fabletools::forecast(h = 12)
+  fabletools::forecast(h = 4)
 forecast_2
-
 
 forecast_2 %>% 
   filter(healthboard == "Ayrshire and Arran") %>% 
   autoplot(tsibble_wards)+
-  guides(colour = guide_legend(title = "Forecast"))
-  
-
+  guides(colour = guide_legend(title = "Forecast"))+
+  labs(title = "What percentage occupancy of wards in chosen healthboard were at over 90% occupancy for the quarter?",
+       x = "Year / Quarter",
+       y = "Percent of wards with over 90% occupancy")
 
 ```
+
+Forecasting difficult using 5 years of quarterly data, especially when there was a major disruption to normal operations (COVID) in the middle.
 

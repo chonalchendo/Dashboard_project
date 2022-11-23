@@ -60,7 +60,7 @@ beds_16_to_21 <- beds_16_21 %>%
   mutate(wards_over_ninety = sum(percentage_over_ninety)) %>%
   mutate(percent_wards_over_ninety = wards_over_ninety/num_in_q_hb*100) %>% 
   ungroup() %>% 
-  select(quarter, hb, specialty_name, percentage_occupancy, percentage_occupancy_by_board, wards_over_ninety, percent_wards_over_ninety)
+  select(quarter, hb, specialty_name, percentage_occupancy, percentage_occupancy_by_board, wards_over_ninety, percent_wards_over_ninety, percentage_occupancy_for_speciality)
 
 ```
 
@@ -97,6 +97,16 @@ beds_16_to_21 <- beds_16_to_21 %>%
   filter(healthboard != "Scotland", healthboard != "The Golden Jubille National Hospital")
 beds_16_to_21
 ```
+Get one value per quarter and healthboard
+```{r}
+avg_beds_16_to_21 <- beds_16_to_21 %>% 
+  filter(percent_wards_over_ninety !=0) %>% 
+  distinct(quarter, healthboard, percentage_occupancy_by_board, percent_wards_over_ninety) 
+avg_beds_16_to_21
+```
+
+
+
 
 ```{r}
 geometry_data <- sf::st_read("../../raw_data/Shape_data/SG_NHS_HealthBoards_2019.shp") %>% 
@@ -111,7 +121,7 @@ latlong <- "+init=epsg:4326"
 
 lat_long_geo_data <- st_transform(simple_geo_data, crs= latlong)
 
-joined_beds <- beds_16_to_21 %>% 
+joined_beds <- avg_beds_16_to_21 %>% 
   left_join(lat_long_geo_data, by = c("healthboard" = "hb_name"))
 
 joined_beds
@@ -126,22 +136,7 @@ dropped_joined_beds <- joined_beds %>%
 
 dropped_joined_beds <- st_as_sf(dropped_joined_beds)
 
-
-
-beds_16_to_21 %>% 
-  filter(percent_wards_over_ninety != 0) %>% 
-  count(quarter, hb, percent_wards_over_ninety)
-
-beds_16_to_21 %>% 
-  count(quarter, hb, percentage_occupancy_by_board)
-
-
-
-
-
-
-
-tsibble_beds <- beds_16_to_21 %>% 
+tsibble_beds <- avg_beds_16_to_21 %>% 
   filter(healthboard != "The Golden Jubille National Hospital",
          healthboard != "Scotland") %>% 
   distinct(quarter, healthboard, percentage_occupancy_by_board)
@@ -151,7 +146,7 @@ tsibble_beds <- tsibble_beds %>%
 
 tsibble_beds %>% as_tsibble(index = quarter, key = healthboard) -> tsibble_beds_percent
 
-tsibble_wards <- beds_16_to_21 %>% 
+tsibble_wards <- avg_beds_16_to_21 %>% 
   filter(healthboard != "The Golden Jubille National Hospital",
          healthboard != "Scotland") %>% 
   distinct(quarter, healthboard, percent_wards_over_ninety)
@@ -166,13 +161,28 @@ tsibble_wards %>% as_tsibble(index = quarter, key = healthboard) -> tsibble_ward
 ```
 
 
+
+
+
 ```{r}
+beds_map_avg <- dropped_joined_beds %>% 
+  group_by(healthboard) %>% 
+  mutate(mean_percent_occ_board = mean(percentage_occupancy_by_board),
+         mean_wards_over_ninety = mean(percent_wards_over_ninety)) %>% 
+  distinct(healthboard, mean_percent_occ_board, mean_wards_over_ninety, geometry)
+```
+
+
+```{r}
+
 write_csv(beds_16_to_21, here::here("../../clean_data/beds_16_to_21.csv"))
 
-st_write(dropped_joined_beds, here::here("../../clean_data/map_beds.geojson"), append = TRUE)
+st_write(beds_map_avg, here::here("../../clean_data/map_beds_4.geojson"), append = TRUE)
 
 write_csv(tsibble_beds_percent, here::here("../../clean_data/tsibble_beds_16_to_21_percent.csv"))
 
 write_csv(tsibble_wards_percent, here::here("../../clean_data/tsibble_wards_16_to_21_percent.csv"))
+
+write_csv(avg_beds_16_to_21, here::here("../../clean_data/avg_beds_16_to_21.csv"))
 
 ```
