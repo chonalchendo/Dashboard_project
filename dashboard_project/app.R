@@ -10,6 +10,7 @@ library(lubridate)
 library(sf)
 library(leaflet)
 library(htmltools)
+library(ggthemes)
 
 #demographics code
 demographics_data <- read_csv(here::here("clean_data/demographics.csv"))
@@ -37,6 +38,11 @@ dropped_joined_waiting <- read_csv(here::here("../Dashboard_project/clean_data/d
 map_variables <- dropped_joined_waiting %>% select(percent_target_met, percent_target_met_ep)
 
 long_wait_variables <- wait_times_clean %>% select(attendance_greater8hrs, attendance_greater12hrs)
+
+target_not_met_tsib <- read_csv(here::here("../Dashboard_project/clean_data/new_wait_tsib.csv")) %>%
+  mutate(year_month = yearmonth(year_month)) %>% 
+  as_tsibble(index = year_month, key = id) %>% 
+  summarise(avg_target_not_met = mean(diff_between_target_met_agg))
 
 
 #beds code
@@ -212,7 +218,7 @@ ui <- dashboardPage(
               multiple = FALSE
             ),
             selectInput(
-              inputId = "healthboard", 
+              inputId = "healthboard2", 
               label = "Select a Healthboard",
               choices = healthboard_wait_times
             )),
@@ -477,11 +483,11 @@ server <- function(input, output) {
   
   output$attendancetarget <- renderPlot(
     wait_times_clean %>% 
-      filter(healthboard %in% input$healthboard,
+      filter(healthboard %in% input$healthboard2,
              department_type == input$department_type) %>% 
       group_by(!!input$timeseriess) %>% 
       summarise(n = mean(percent_target_met)) %>% 
-      ggplot(aes(!!input$timeseriess, n, colour = input$healthboard, group = input$healthboard)) +
+      ggplot(aes(!!input$timeseriess, n, colour = input$healthboard2, group = input$healthboard2)) +
       scale_y_continuous(labels=scales::percent) +
       geom_line(show.legend = FALSE) +
       theme_classic() +
