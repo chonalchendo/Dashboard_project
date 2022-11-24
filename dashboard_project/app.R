@@ -211,7 +211,7 @@ ui <- dashboardPage(
           choices = year
         ),
         
-        h3("Attendance Targets"),
+        h3("Attendance Targets Met"),
         fluidRow(
           column(
             6,
@@ -479,8 +479,8 @@ server <- function(input, output) {
       geom_col(show.legend = FALSE) +
       theme_classic() +
       coord_flip() +
-      scale_y_continuous(labels = scales::comma)
-      #labs(x = "Healthboard", y = "attendances", title = "Total Attendances by Healthboard (Aggregate)")
+      scale_y_continuous(labels = scales::comma) +
+      labs(x = "Healthboard", y = "attendances", title = "Total Attendances by Healthboard (Aggregate)")
   )
 
   output$sumepattendance <- renderPlot(
@@ -494,8 +494,8 @@ server <- function(input, output) {
       geom_col(show.legend = FALSE) +
       theme_classic() +
       coord_flip() +
-      scale_y_continuous(labels = scales::comma)
-      #labs(x = "Healthboard", y = "Attendances (Epiosdes)", title = "Total Attendances by Healthboard (Episode)")  
+      scale_y_continuous(labels = scales::comma) +
+      labs(x = "Healthboard", y = "Attendances (Epiosdes)", title = "Total Attendances by Healthboard (Episode)")  
       
   )
   
@@ -521,7 +521,8 @@ server <- function(input, output) {
       geom_sf() +
       theme_map() +
       theme(legend.position = "right") +
-      scale_fill_distiller(palette = "YlOrRd")
+      scale_fill_distiller(palette = "YlOrRd") +
+      labs(title = "Targets Met as a Percentage by Region")
 
   )
   
@@ -535,7 +536,8 @@ server <- function(input, output) {
       ggplot(aes(!!input$timeseries, eight_or_12_avg, colour = input$healthboards, group = input$healthboards)) +
       geom_line(show.legend = FALSE) +
       theme_classic() +
-      theme(axis.text.x = element_text(angle=45, hjust=1)) 
+      theme(axis.text.x = element_text(angle=45, hjust=1)) +
+      labs(y = "Attendances")
     
     )
   
@@ -559,7 +561,7 @@ server <- function(input, output) {
     plot(prophet_no_targ, forecast_p_no_targ) +
       xlab("Year") +
       ylab("Targets Not Being Met") +
-      labs(title = "Prophet forecast of Target Not Being Met Aggregate") +
+      labs(title = "Prophet forecast of Targets Not Being Met Across Scotland") +
       theme_classic()
   })
   
