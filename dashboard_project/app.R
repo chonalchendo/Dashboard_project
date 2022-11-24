@@ -31,7 +31,8 @@ year <- sort(unique(wait_times_clean$year))
 
 healthboard_wait_times <- sort(unique(wait_times_clean$healthboard))
 
-month_or_year <- wait_times_clean %>% select(month, year)
+month_or_year <- wait_times_clean %>%
+  select(month, year) 
 
 dropped_joined_waiting <- read_csv(here::here("../Dashboard_project/clean_data/dropped_joined_waiting.csv"))
 
@@ -477,7 +478,8 @@ server <- function(input, output) {
       ggplot(aes(reorder(healthboard, attendance), attendance, fill = healthboard)) +
       geom_col(show.legend = FALSE) +
       theme_classic() +
-      coord_flip() 
+      coord_flip() +
+      scale_y_continuous(labels = scales::comma)
       #labs(x = "Healthboard", y = "attendances", title = "Total Attendances by Healthboard (Aggregate)")
   )
 
@@ -491,7 +493,8 @@ server <- function(input, output) {
       ggplot(aes(reorder(healthboard, attendance_ep), attendance_ep, fill = healthboard)) +
       geom_col(show.legend = FALSE) +
       theme_classic() +
-      coord_flip() 
+      coord_flip() +
+      scale_y_continuous(labels = scales::comma)
       #labs(x = "Healthboard", y = "Attendances (Epiosdes)", title = "Total Attendances by Healthboard (Episode)")  
       
   )
@@ -500,14 +503,16 @@ server <- function(input, output) {
     wait_times_clean %>% 
       filter(healthboard %in% input$healthboard2,
              department_type == input$department_type) %>% 
+      mutate(month = factor(month, levels = month.name)) %>% 
+      arrange(month) %>% 
       group_by(!!input$timeseriess) %>% 
       summarise(n = mean(percent_target_met)) %>% 
       ggplot(aes(!!input$timeseriess, n, colour = input$healthboard2, group = input$healthboard2)) +
       scale_y_continuous(labels=scales::percent) +
       geom_line(show.legend = FALSE) +
       theme_classic() +
-      #labs(x = "Time Frame", y = "Percentage", title = "Yearly Healthboard Attendance Target Met (Percentage)") +
-      theme(axis.text.x = element_text(angle=45, hjust=1))
+      labs(y = "Percentage", title = "Yearly Healthboard Attendance Target Met (Percentage)") +
+      theme(axis.text.x = element_text(angle=45, hjust=1)) 
   )
   
   output$targetmap <- renderPlot(
@@ -523,6 +528,8 @@ server <- function(input, output) {
   output$attendance8hrs <- renderPlot(
     wait_times_clean %>%
       filter(healthboard %in% input$healthboards) %>% 
+      mutate(month = factor(month, levels = month.name)) %>% 
+      arrange(month) %>% 
       group_by(!!input$timeseries) %>%
       summarise(eight_or_12_avg = mean(!!input$which_hr, na.rm = TRUE)) %>%
       ggplot(aes(!!input$timeseries, eight_or_12_avg, colour = input$healthboards, group = input$healthboards)) +
