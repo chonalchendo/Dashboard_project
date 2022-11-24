@@ -494,7 +494,8 @@ server <- function(input, output) {
       ggplot(aes(fill = !!input$variable)) +
       geom_sf() +
       theme_map() +
-      theme(legend.position = "right")
+      theme(legend.position = "right") +
+      scale_fill_distiller(palette = "YlOrRd")
 
   )
   
