@@ -418,6 +418,7 @@ server <- function(input, output) {
       geom_col(aes(fill = winter, color = winter)) +
       ylab("Total Episodes") +
       xlab("Quarter") +
+      scale_y_continuous(labels = scales::comma) +
       labs(title  = "Total Episodes by Healthboard") +
       theme(axis.text.x = element_text(angle=45, hjust=1))
   )
@@ -431,7 +432,7 @@ server <- function(input, output) {
       summarise(mean_episode = mean(average_length_of_episode, na.rm = TRUE)) %>% 
       mutate(winter = if_else(str_detect(quarter, "Q[1,4]"), TRUE, FALSE)) %>%
       ggplot(aes(x = quarter, y = mean_episode)) +
-      geom_col(aes(fill = winter, color = winter)) +
+      geom_col(aes(fill = winter)) +
       ylab("Average Length of Episode") +
       xlab("Quarter") +
       labs(title  = "Average Length of Episode by Healthboard") +
@@ -685,9 +686,6 @@ server <- function(input, output) {
       
     )
     
-
-  
-
 }
 # Run the application 
 shinyApp(ui = ui, server = server)
