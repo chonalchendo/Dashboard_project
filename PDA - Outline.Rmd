@@ -1,0 +1,57 @@
+---
+title: "Project description"
+author: "D. Bradshaw"
+date: "2022-11-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Names of group members
+
+- Dave Bradshaw
+- Conal Henderson
+- Juan Ignacio De Vicente Ojeda
+- Lewis Pantony
+
+## Roles and responsibilities of each member
+
+
+
+## Brief description of dashboard topic
+
+
+
+## Stages of project
+
+
+
+## Which tools were used in the project
+
+
+
+## How did you gather and synthesise requirements for the project?
+
+
+
+## Motivations for using the data you have chosen
+
+
+
+## Data quality and potential bias, including a brief summary of data cleaning and transformations
+
+
+
+## How is the data stored and structured
+
+
+
+## Ethical and Legal considerations of the data
+
+Legally the data used was made available and copyright allowed with acknowledgement of the source of the data.
+
+
+
+
+

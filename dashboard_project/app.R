@@ -374,7 +374,9 @@ ui <- dashboardPage(
           column(
             6,
             plotOutput("prophet")
-          )
+          ),
+          h5("All data used from NHS Scotland and covered by the Open Government License"),
+          h5("https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/")
         )
       )
     )
