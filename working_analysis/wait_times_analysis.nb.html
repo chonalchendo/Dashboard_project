@@ -1968,43 +1968,15 @@ dropped_joined_waiting
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxud2FpdF90aW1lc19jbGVhbiA8LSB3YWl0X3RpbWVzX2NsZWFuICU+JSBcbiAgbXV0YXRlKHBlcmNlbnRfdGFyZ2V0X21ldCA9IG51bWJlcl9tZWV0aW5nX3RhcmdldF9hZ2dyZWdhdGUvbnVtYmVyX29mX2F0dGVuZGFuY2VzX2FnZ3JlZ2F0ZSxcbiAgICAgICAgIHBlcmNlbnRfdGFyZ2V0X21ldF9lcCA9IG51bWJlcl9tZWV0aW5nX3RhcmdldF9lcGlzb2RlL251bWJlcl9vZl9hdHRlbmRhbmNlc19lcGlzb2RlKVxuXG53YWl0X3RpbWVzX2NsZWFuXG5cblxuIyBwZXJjZW50YWdlIG9mIGF0dGVuZGFuY2UgdGFyZ2V0IG1ldCAoYWdncmVnYXRlKVxuXG4gIFxud2FpdF90aW1lc19jbGVhbiAlPiUgICBcbiAgZ3JvdXBfYnkoeWVhciwgaGVhbHRoYm9hcmQpICU+JSBcbiAgc3VtbWFyaXNlKG4gPSBtZWFuKHBlcmNlbnRfdGFyZ2V0X21ldCkpICU+JSBcbiAgZ2dwbG90KGFlcyh5ZWFyLCBuLCBjb2xvdXIgPSBoZWFsdGhib2FyZCwgZ3JvdXAgPSBoZWFsdGhib2FyZCkpICtcbiAgc2NhbGVfeV9jb250aW51b3VzKGxhYmVscz1zY2FsZXM6OnBlcmNlbnQpICtcbiAgZ2VvbV9saW5lKCkgK1xuICB0aGVtZV9jbGFzc2ljKCkgK1xuICBsYWJzKHggPSBcIlllYXJcIiwgeSA9IFwiUGVyY2VudGFnZVwiLCB0aXRsZSA9IFwiSGVhbHRoYm9hcmQgQXR0ZW5kYW5jZSBUYXJnZXQgTWV0IChQZXJjZW50YWdlKVwiKVxuXG4jIHBlcmNlbnRhZ2Ugb2YgYXR0ZW5kYW5jZSB0YXJnZXQgbWV0IChlcGlzb2RlKVxuXG5cblxud2FpdF90aW1lc19jbGVhbiAlPiUgXG4gIGdyb3VwX2J5KHllYXIsIGhlYWx0aGJvYXJkKSAlPiUgXG4gIHN1bW1hcmlzZShuID0gbWVhbihwZXJjZW50X3RhcmdldF9tZXQpKSAlPiUgXG5cbiAgZ2dwbG90KGFlcyh5ZWFyLCBuLCBjb2xvdXIgPSBoZWFsdGhib2FyZCwgZ3JvdXAgPSBoZWFsdGhib2FyZCkpICtcbiAgc2NhbGVfeV9jb250aW51b3VzKGxhYmVscz1zY2FsZXM6OnBlcmNlbnQpICtcbiAgZ2VvbV9saW5lKCkgK1xuICB0aGVtZV9jbGFzc2ljKCkgK1xuICBsYWJzKHggPSBcIlllYXJcIiwgeSA9IFwiUGVyY2VudGFnZVwiLCB0aXRsZSA9IFwiSGVhbHRoYm9hcmQgQXR0ZW5kYW5jZSBUYXJnZXQgTWV0IChQZXJjZW50YWdlKVwiKVxuXG53YWl0X3RpbWVzX2NsZWFuXG4gIFxuYGBgIn0= -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxud2FpdF90aW1lc19jbGVhbiA8LSB3YWl0X3RpbWVzX2NsZWFuICU+JSBcbiAgbXV0YXRlKHBlcmNlbnRfdGFyZ2V0X21ldCA9IG51bWJlcl9tZWV0aW5nX3RhcmdldF9hZ2dyZWdhdGUvbnVtYmVyX29mX2F0dGVuZGFuY2VzX2FnZ3JlZ2F0ZSxcbiAgICAgICAgIHBlcmNlbnRfdGFyZ2V0X21ldF9lcCA9IG51bWJlcl9tZWV0aW5nX3RhcmdldF9lcGlzb2RlL251bWJlcl9vZl9hdHRlbmRhbmNlc19lcGlzb2RlKVxuYGBgIn0= -->
 <pre class="r"><code>wait_times_clean &lt;- wait_times_clean %&gt;% 
   mutate(percent_target_met = number_meeting_target_aggregate/number_of_attendances_aggregate,
-         percent_target_met_ep = number_meeting_target_episode/number_of_attendances_episode)
-
-wait_times_clean
-
-
-# percentage of attendance target met (aggregate)
-
-  
-wait_times_clean %&gt;%   
-  group_by(year, healthboard) %&gt;% 
-  summarise(n = mean(percent_target_met)) %&gt;% 
-  ggplot(aes(year, n, colour = healthboard, group = healthboard)) +
-  scale_y_continuous(labels=scales::percent) +
-  geom_line() +
-  theme_classic() +
-  labs(x = &quot;Year&quot;, y = &quot;Percentage&quot;, title = &quot;Healthboard Attendance Target Met (Percentage)&quot;)
-
-# percentage of attendance target met (episode)
-
-
-
-wait_times_clean %&gt;% 
-  group_by(year, healthboard) %&gt;% 
-  summarise(n = mean(percent_target_met)) %&gt;% 
-
-  ggplot(aes(year, n, colour = healthboard, group = healthboard)) +
-  scale_y_continuous(labels=scales::percent) +
-  geom_line() +
-  theme_classic() +
-  labs(x = &quot;Year&quot;, y = &quot;Percentage&quot;, title = &quot;Healthboard Attendance Target Met (Percentage)&quot;)
-
-wait_times_clean
-  </code></pre>
+         percent_target_met_ep = number_meeting_target_episode/number_of_attendances_episode)</code></pre>
 <!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gd2FpdF90aW1lc19jbGVhbiAlPiUgbXV0YXRlKHBlcmNlbnRfdGFyZ2V0X21ldCA9IG51bWJlcl9tZWV0aW5nX3RhcmdldF9hZ2dyZWdhdGUvbnVtYmVyX29mX2F0dGVuZGFuY2VzX2FnZ3JlZ2F0ZSwgIDogXG4gIGNvdWxkIG5vdCBmaW5kIGZ1bmN0aW9uIFwiJT4lXCJcbiJ9 -->
+<pre><code>Error in wait_times_clean %&gt;% mutate(percent_target_met = number_meeting_target_aggregate/number_of_attendances_aggregate,  : 
+  could not find function &quot;%&gt;%&quot;</code></pre>
+<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
