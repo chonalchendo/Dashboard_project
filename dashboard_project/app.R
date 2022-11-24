@@ -476,7 +476,8 @@ server <- function(input, output) {
       ggplot(aes(reorder(healthboard, attendance), attendance, fill = healthboard)) +
       geom_col(show.legend = FALSE) +
       theme_classic() +
-      coord_flip() 
+      coord_flip() +
+      scale_y_continuous(labels = scales::comma)
       #labs(x = "Healthboard", y = "attendances", title = "Total Attendances by Healthboard (Aggregate)")
   )
 
@@ -490,7 +491,8 @@ server <- function(input, output) {
       ggplot(aes(reorder(healthboard, attendance_ep), attendance_ep, fill = healthboard)) +
       geom_col(show.legend = FALSE) +
       theme_classic() +
-      coord_flip() 
+      coord_flip() +
+      scale_y_continuous(labels = scales::comma)
       #labs(x = "Healthboard", y = "Attendances (Epiosdes)", title = "Total Attendances by Healthboard (Episode)")  
       
   )
