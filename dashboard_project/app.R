@@ -115,8 +115,23 @@ ui <- dashboardPage(
       tabItem(
         tabName = "demographics",
         h2("NHS Demographics 2016 - 2021"),
-        h3("Across All Health Boards"),
-        tags$br(),
+        fluidRow(
+          column(
+            6,
+            h2("Across All Health Boards")),
+          column(
+            3,
+            icon("mars", "fa-3x"),
+            tags$style(".fa-mars {color:#00BFC4}"),
+            h4("Male life expectancy in Scotland 76.6")
+          ),
+          column(
+            3, 
+            icon("venus", "fa-3x"),
+            tags$style(".fa-venus {color:#F8766D}"),
+            h4("Female life expectancy in Scotland 80.8")
+          )
+        ),
         fluidRow(
           column(
             6,
@@ -128,7 +143,6 @@ ui <- dashboardPage(
           )
         ),
         h3("Select Healthboard"),
-        tags$br(),
         fluidRow(
           column(
             2,
@@ -150,7 +164,6 @@ ui <- dashboardPage(
           )
         ),
         h3("Select Demographics"),
-        tags$br(),
         fluidRow(
           column(
             6,
@@ -381,6 +394,7 @@ server <- function(input, output) {
       ylab("Total Episodes") +
       xlab("Age Range") +
       labs(title  = "Total Episodes by Age and Gender") +
+      scale_y_continuous(labels = scales::comma) +
       theme(axis.text.x = element_text(angle=45, hjust=1))
   )  
   
@@ -463,7 +477,8 @@ server <- function(input, output) {
       ggplot(aes(reorder(healthboard, attendance), attendance, fill = healthboard)) +
       geom_col(show.legend = FALSE) +
       theme_classic() +
-      coord_flip() 
+      coord_flip() +
+      scale_y_continuous(labels = scales::comma)
       #labs(x = "Healthboard", y = "attendances", title = "Total Attendances by Healthboard (Aggregate)")
   )
 
@@ -477,7 +492,8 @@ server <- function(input, output) {
       ggplot(aes(reorder(healthboard, attendance_ep), attendance_ep, fill = healthboard)) +
       geom_col(show.legend = FALSE) +
       theme_classic() +
-      coord_flip() 
+      coord_flip() +
+      scale_y_continuous(labels = scales::comma)
       #labs(x = "Healthboard", y = "Attendances (Epiosdes)", title = "Total Attendances by Healthboard (Episode)")  
       
   )
