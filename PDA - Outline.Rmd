@@ -17,41 +17,84 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Roles and responsibilities of each member
 
-
+- Dave Bradshaw
+Created data graphs and maps covering beds occupancy data
+- Conal Henderson
+Created data graphs and map covering waiting time data
+- Juan Ignacio De Vicente Ojeda
+Created data graphics for pediatrics data and the COVID impact
+- Lewis Pantony
+Created data graphs of demographic data and forecasts for admissions
+Created outline layout for shiny app
+- Everyone
+Uploaded data visualizations into shiny app
+Trouble shooting
+Presentation work
 
 ## Brief description of dashboard topic
 
-
+Our dashboard contains;
+Demographic information on the general users of the NHS and how this breaks down over time.
+Waiting times data ____
+Information on bed occupancy across the various health boards and specialties across Scotland. Focus on a 90% occupancy rate to determine crises levels.
+Information on impact of COVID-19 to pediatrics services and a forecast for future admissions.
 
 ## Stages of project
 
-
+Planning and research
+Choosing data sets
+Review of data and trends
+Wire frame planning of app layout
+Coding graphs
+Coding graphs into Shiny app
+Checking comparability of all data
+Planning and practicing presentation
 
 ## Which tools were used in the project
 
-
+Zoom - daily stand ups and group meetings as required
+Git/GitHub - collaboration and version control
+RStudio - coding
 
 ## How did you gather and synthesise requirements for the project?
 
+We synthesized the information given in the brief by cleaning the names using janitor package, mutating the date columns into time series with lubridate and running analysis on the data with the tidyverse package.
 
+We used ggplot to generate graphs and maps as well as leaflet to generate further maps.
+
+We also used prophet and fable tools to forecast for the future using the data available.
 
 ## Motivations for using the data you have chosen
 
+We used the demogrpahics (age, gender, speciality) data to observe the current trends in the NHS and who uses the service.
 
+We used the waiting times data to assess whether targets that had been set were being met and how this changed over time. We felt this was a suitable metric to see if this increased over time and during the winter months as a way to see whether there was a winter crises.
+
+We used the beds data to assess how many beds (as a % of total) were available in speciality wards across Scotland. This felt a suitable metric to see if capacity for treatment increased either throughout the year or between years.
 
 ## Data quality and potential bias, including a brief summary of data cleaning and transformations
 
+Data quality overall was good to begin with. 
 
+Data was checked for any obvious outlier values before proceeding to analysis stage.
+
+Multiple mutate functions were used across data sets to summarize grouped data while retaining full data set.
+
+The data for plotting map co-ordinates was also pulled from the Open Government data. This has been diluted slightly, plotting the data less accurately but fine for our purposes unless the map is zoomed in on to a high degree. This was done to speed up the processing power by plotting less data points.
 
 ## How is the data stored and structured
 
+Dashboard project and presentation slides were saved in folders just for these files.
+
+Raw data used for analysis was saved in raw_data folder.
+
+Cleaning scripts were retained in a cleaning script folder and clean data was saved separately in a clean data folder. 
+
+Then a working analysis folder was created to store any graphs and visualisations as they were being created and tested prior to loading into the main app.
 
 
 ## Ethical and Legal considerations of the data
 
-Legally the data used was made available and copyright allowed with acknowledgement of the source of the data.
+Legally the data used was made available and copyright allowed with acknowledgement of the source of the data which was noted on the final slide.
 
-
-
-
-
+Ethically the data has been purged of personal information and any categorical data is insufficient to identify individuals.
